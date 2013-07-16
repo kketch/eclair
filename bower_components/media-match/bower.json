@@ -1,0 +1,8 @@
+{
+  "name": "media-match",
+  "version": "2.0.2",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/weblinc/media-match.git"
+  }
+}

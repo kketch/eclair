@@ -1,0 +1,21 @@
+{
+	"defaults": {
+		"modulePath": "/eclair-modules/",
+		"xhrProxy": ""
+	},
+	"core": [
+		"EventEmitter",
+		"Promise",
+		"Config",
+		"require"
+	],
+	"components": [
+		"LocalStorage",
+		"XHR",
+		"Browser",
+		"media.match.js",
+		"Orientation"
+	],
+	"modules": [
+	]
+}

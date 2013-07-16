@@ -1,0 +1,27 @@
+{
+  "name": "eclair",
+  "version": "0.2.4",
+  "description": "Set of javascript convenient wrappers & classes",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/kketch/eclair.git"
+  },
+  "author": "Kevin Wenner",
+  "license": "MIT License",
+  "readmeFilename": "README.md",
+  "gitHead": "7e34c808901ff1c1978321fff2bf022f3d4f43fa",
+  "devDependencies": {
+    "underscore": "~1.5.1",
+    "grunt-contrib-concat": "~0.3.0",
+    "mustache": "~0.7.2",
+    "grunt-templater": "0.0.4-1",
+    "grunt-contrib-uglify": "~0.2.2",
+    "grunt": "~0.4.1",
+    "grunt-contrib-connect": "~0.3.0",
+    "grunt-jsdoc": "~0.4.0",
+    "grunt-contrib-jasmine": "~0.5.1"
+  }
+}

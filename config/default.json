@@ -13,7 +13,7 @@
 		"LocalStorage",
 		"XHR",
 		"Browser",
-		"media.match.js",
+		"media-match/media.match.js",
 		"Orientation"
 	],
 	"modules": [

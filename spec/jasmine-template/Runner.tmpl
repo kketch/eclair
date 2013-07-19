@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1">
+  <title>Eclair.js Unit Tests</title>
+<% css.forEach(function(style){ %>
+  <link rel="stylesheet" type="text/css" href="<%= style %>">
+<% }) %>
+<% with (scripts) { %>
+  <% [].concat(jasmine, vendor, helpers, src, specs, reporters, start).forEach(function(script){ %>
+  <script src="<%= script %>"></script>
+  <% }) %>
+<% }; %>
+  <style>
+        
+    #Eclair-header h1 {
+      font: 16px Monaco, 'Lucida Console', monospace;
+    }
+    ul.user-agent, .user-agent > li {
+      list-style: none;
+    }
+    
+    ul.user-agent {
+      margin: 0;
+      padding: 10px;
+    }
+    
+    ul.user-agent > li {
+      display: inline-block;
+      font: 11px Monaco, 'Lucida Console', monospace;
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="Eclair-header">
+    <h1>Platform:</h1>
+    <ul class="user-agent">
+      <li id="webkit"></li>
+      <li id="ios"></li>
+      <li id="android"></li>
+      
+      <li id="version"></li>
+      <li id="fullVersion"></li>
+      
+      <li id="name"></li>
+      <li id="fullName"></li>
+      
+      <li id="EclairVersion"></li>
+    </ul>
+  </div>
+  
+  <script>
+    
+    var b = Eclair.Browser;
+    
+    var render = function (name, content) {
+      
+      var domEl = document.getElementById(name);
+      
+      name = name[0].toUpperCase() + name.slice(1);
+      content = '<strong>' + name + ':</strong> ' + content;
+      
+      domEl.innerHTML = content;
+      
+    }
+    
+    render('webkit', b.webkit ? 'Yes' : 'No');
+    render('ios', b.ios ? 'Yes' : 'No');
+    render('android', b.android ? 'Yes' : 'No');
+    
+    render('version', b.version);
+    render('fullVersion', b.fullVersion);
+    render('name', b.name);
+    render('fullName', b.fullName);
+    
+    render('EclairVersion', Eclair.VERSION);
+    
+  </script>
+</body>
+</html>

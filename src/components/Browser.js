@@ -227,6 +227,7 @@
 
 			if (!this.locked) {
 				w.addEventListener('touchmove', lockScrollListener, false);
+				this.locked = true;
 			}
 
 		},
@@ -241,6 +242,7 @@
 
 			if (this.locked) {
 				w.removeEventListener('touchmove', lockScrollListener);
+				this.locked = false;
 			}
 
 		},

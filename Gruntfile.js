@@ -131,7 +131,7 @@ module.exports = function (grunt) {
 					port: 8888
 				}
 			}
-		}/*,
+		},
 		jasmine: {
 			local: {
 			  src: 'build/dist/eclair.js',
@@ -148,7 +148,7 @@ module.exports = function (grunt) {
   					template: './spec/jasmine-template/Runner.tmpl'
   			  	}
 			}
-		}*/
+		}
 	})
 
 	// Grunt Concat Plugin
@@ -167,15 +167,15 @@ module.exports = function (grunt) {
 	grunt.loadNpmTasks('grunt-contrib-connect')
 
 	grunt.loadNpmTasks('grunt-contrib-jasmine')
-/*
+	
 	grunt.registerTask('test', [
 		'connect:inline',
 		'jasmine:connect'
 	])
-*/
+	
 	grunt.registerTask('server', [
 	
-		//'jasmine:connect:build',
+		'jasmine:connect:build',
 		'connect:server'
 		
 	])
@@ -183,8 +183,8 @@ module.exports = function (grunt) {
 	grunt.registerTask('default', [
 		'concat',
 		'uglify',
-		'template'/*,
-		'test'*/
+		'template',
+		'test'
 	])
 
 }

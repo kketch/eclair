@@ -189,7 +189,7 @@
 			for (var k in data) {
 
 				if (data.hasOwnProperty(k)) {
-					result += '&' + e(k) + '=' + e(data[k]);
+					result += (!result ? '' : '&') + e(k) + '=' + e(data[k]);
 				}
 
 			}

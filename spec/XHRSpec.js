@@ -47,7 +47,7 @@ describe('Eclair.XHR Spec', function () {
                 due: 'yesterday',
                 force: true
             },
-            paramString = "&image=someimage.png&due=yesterday&force=true"
+            paramString = "image=someimage.png&due=yesterday&force=true"
             
         expect(XHR.encodeURI(params)).toBe(paramString)
         

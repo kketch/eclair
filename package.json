@@ -13,7 +13,7 @@
   "license": "MIT License",
   "readmeFilename": "README.md",
   "gitHead": "7e34c808901ff1c1978321fff2bf022f3d4f43fa",
-  "devDependencies": {
+  "dependencies": {
     "underscore": "~1.5.1",
     "grunt-contrib-concat": "~0.3.0",
     "mustache": "~0.7.2",
@@ -23,5 +23,8 @@
     "grunt-contrib-connect": "~0.3.0",
     "grunt-jsdoc": "~0.4.0",
     "grunt-contrib-jasmine": "~0.5.1"
+  },
+  "scripts": {
+    "install": "grunt"
   }
 }

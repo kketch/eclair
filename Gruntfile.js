@@ -136,7 +136,7 @@ module.exports = function (grunt) {
 			local: {
 			  src: 'build/dist/eclair.js',
 			  options: {
-				specs: 'spec/*Spec.js',
+				specs: ['spec/*Spec.js', 'spec/modules/*Spec.js'],
 				helpers: 'spec/*Helper.js'
 			  }
 			},
@@ -144,7 +144,7 @@ module.exports = function (grunt) {
 				src: 'build/dist/eclair.js',
   			  	options: {
 					host: 'http://localhost:<%= connect.server.options.port %>/',
-  					specs: 'spec/*Spec.js',
+  					specs: ['spec/*Spec.js', 'spec/modules/*Spec.js'],
   					template: './spec/jasmine-template/Runner.tmpl'
   			  	}
 			}

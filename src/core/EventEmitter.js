@@ -5,31 +5,40 @@
 
 (function(Eclair, _) {
 
-	 /**
-	  *  <p> EventEmitter Compenent Constructor, this a simple event emitter,
-	  *  no parameters needed to create an instance from it. </p>
-	  *  <p> This compenent enable easy non blocking event-driven programming with javascript </p>
-	  *
-	  *  @constructor
-	  *  @memberof Eclair
-	  *
-	  *  @example // A new instance of EventEmitter
-	  *  var emitter = new Eclair.EventEmitter;
-	  */
-	 var EventEmitter = Eclair.Module("EventEmitter"),
-		 emitterProto = EventEmitter.prototype;
+	/**
+	 *  <p> EventEmitter Compenent Constructor, this a simple event emitter,
+	 *  no parameters needed to create an instance from it. </p>
+	 *  <p> This compenent enable easy non blocking event-driven programming with javascript </p>
+	 *
+	 *  @constructor
+	 *  @memberof Eclair
+	 *
+	 *  @example // A new instance of EventEmitter
+	 *  var emitter = new Eclair.EventEmitter;
+	 */
+	var EventEmitter = Eclair.Module("EventEmitter", {
+		
+			initializer: function () {
+				
+				this.delegate = {};
+				
+			}
+		
+		}),
+		emitterProto = EventEmitter.prototype,
+		spaceRegex = /\s/;
 
-	 /**
-	  *  Find the index of the listener
-	  *
-	  *  @param {Function} listener
-	  *	 @param {Array} listeners
-	  */
-	 var findListener = function (listener, listeners) {
+	/**
+	 *  Find the index of the listener
+	 *
+	 *  @param {Function} listener
+	 *	 @param {Array} listeners
+	 */
+	var findListener = function (listener, listeners) {
 
-		 return _(listeners).indexOf(listener);
+		return _(listeners).indexOf(listener);
 
-	 }
+	}
 
 	 /**
 	  *  Return the event object or create it if required
@@ -103,7 +112,13 @@
 	  *  ));
 	  */
 	 emitterProto.on = function (event, listener) {
-
+		
+		 if (event.match(spaceRegex)) {
+			 
+			 return this._onEvents(event.split(spaceRegex), listener);
+			 
+		 }
+		 
 		 // Do not attach anything else that a function:
 		 if (typeof listener !== 'function') {
 			 return;
@@ -114,10 +129,24 @@
 		 if (findListener(listener, listeners) === -1) {
 			 listeners.push(listener);
 		 }
-
+		 
+		 this.delegate.onNewListener && (this.delegate.onNewListener(event, listener));
+					 
 		 // To allow chaining return an instance of Eclair.EventEmitter
 		 return this;
 
+	 }
+	 
+	 emitterProto._onEvents = function (events, listener) {
+		 
+		 var self = this;
+		 
+		 _.each(events, function (event) {
+			 
+			self.on(event, listener);
+			 
+		 })
+		 
 	 }
 
 	 /**

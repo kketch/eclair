@@ -415,7 +415,7 @@
 
 					self.responseText = xhr.responseText;
 
-				} else if (self.responseType === 'json' && !self.async) {
+				} else if (self.responseType === 'json' && _.isString(self.response)) {
 
 					// Enable json responseType on synchronous requests
 					self.response = JSON.parse(self.response);

@@ -8,6 +8,7 @@ var _ = require('underscore'),
 	BUILTIN = [
 	
 		'bower_components/underscore/underscore.js',
+		'src/lib/DOMParser.js',
 		'src/Eclair.js'
 		
 	],

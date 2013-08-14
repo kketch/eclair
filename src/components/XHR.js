@@ -360,9 +360,13 @@
 
 		// A specific responseType has been specified
 		if (this.responseType && this.async) {
-
-			xhr.responseType = this.responseType;
-
+			
+			try {
+				
+				xhr.responseType = this.responseType;
+				
+			} catch (e) {}
+			
 		}
 
 		xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');

@@ -228,7 +228,7 @@
 	 *  @method
 	 *  @memberof Eclair.XHR
 	 *  @param {String} url Url to "touch"
-	 *  @param {Function|Boolean} callback Callback to trigger when the tracking is done, is false is passed the tracking will be synchronous
+	 *  @param {Boolean} [async=true] whether the tracking operation should be asynchronous
 	 *
 	 *  @todo use a Image.src loader with cross origin request
 	 */

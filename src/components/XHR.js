@@ -228,16 +228,25 @@
 	 *  @method
 	 *  @memberof Eclair.XHR
 	 *  @param {String} url Url to "touch"
+	 *  @param {Function|Boolean} callback Callback to trigger when the tracking is done, is false is passed the tracking will be synchronous
 	 *
 	 *  @todo use a Image.src loader with cross origin request
 	 */
 	XHR.track = function (url, callback) {
-
-		return this.get(url, callback, {
-
+		
+		var options = {
+		
 			headersOnly: true
-
-		})
+		
+		};
+		
+		if (callback === false) {
+			
+			options.async = false;
+			
+		}
+		
+		return this.get(url, options)
 
 	}
 

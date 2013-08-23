@@ -1,0 +1,4037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Eclair API Reference: Source: eclair.js</title>
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,400,300,600,700' rel='stylesheet' type='text/css'>
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <script src="scripts/main.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-jsdoc.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+    
+    <h1 class="page-title">Source: eclair.js</h1>
+    
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source"><code>// Underscore.js 1.4.4
+// ===================
+
+// > http://underscorejs.org
+// > (c) 2009-2013 Jeremy Ashkenas, DocumentCloud Inc.
+// > Underscore may be freely distributed under the MIT license.
+
+// Baseline setup
+// --------------
+(function() {
+
+  // Establish the root object, `window` in the browser, or `global` on the server.
+  var root = this;
+
+  // Save the previous value of the `_` variable.
+  var previousUnderscore = root._;
+
+  // Establish the object that gets returned to break out of a loop iteration.
+  var breaker = {};
+
+  // Save bytes in the minified (but not gzipped) version:
+  var ArrayProto = Array.prototype, ObjProto = Object.prototype, FuncProto = Function.prototype;
+
+  // Create quick reference variables for speed access to core prototypes.
+  var push             = ArrayProto.push,
+      slice            = ArrayProto.slice,
+      concat           = ArrayProto.concat,
+      toString         = ObjProto.toString,
+      hasOwnProperty   = ObjProto.hasOwnProperty;
+
+  // All **ECMAScript 5** native function implementations that we hope to use
+  // are declared here.
+  var
+    nativeForEach      = ArrayProto.forEach,
+    nativeMap          = ArrayProto.map,
+    nativeReduce       = ArrayProto.reduce,
+    nativeReduceRight  = ArrayProto.reduceRight,
+    nativeFilter       = ArrayProto.filter,
+    nativeEvery        = ArrayProto.every,
+    nativeSome         = ArrayProto.some,
+    nativeIndexOf      = ArrayProto.indexOf,
+    nativeLastIndexOf  = ArrayProto.lastIndexOf,
+    nativeIsArray      = Array.isArray,
+    nativeKeys         = Object.keys,
+    nativeBind         = FuncProto.bind;
+
+  // Create a safe reference to the Underscore object for use below.
+  var _ = function(obj) {
+    if (obj instanceof _) return obj;
+    if (!(this instanceof _)) return new _(obj);
+    this._wrapped = obj;
+  };
+
+  // Export the Underscore object for **Node.js**, with
+  // backwards-compatibility for the old `require()` API. If we're in
+  // the browser, add `_` as a global object via a string identifier,
+  // for Closure Compiler "advanced" mode.
+  if (typeof exports !== 'undefined') {
+    if (typeof module !== 'undefined' && module.exports) {
+      exports = module.exports = _;
+    }
+    exports._ = _;
+  } else {
+    root._ = _;
+  }
+
+  // Current version.
+  _.VERSION = '1.4.4';
+
+  // Collection Functions
+  // --------------------
+
+  // The cornerstone, an `each` implementation, aka `forEach`.
+  // Handles objects with the built-in `forEach`, arrays, and raw objects.
+  // Delegates to **ECMAScript 5**'s native `forEach` if available.
+  var each = _.each = _.forEach = function(obj, iterator, context) {
+    if (obj == null) return;
+    if (nativeForEach && obj.forEach === nativeForEach) {
+      obj.forEach(iterator, context);
+    } else if (obj.length === +obj.length) {
+      for (var i = 0, l = obj.length; i &lt; l; i++) {
+        if (iterator.call(context, obj[i], i, obj) === breaker) return;
+      }
+    } else {
+      for (var key in obj) {
+        if (_.has(obj, key)) {
+          if (iterator.call(context, obj[key], key, obj) === breaker) return;
+        }
+      }
+    }
+  };
+
+  // Return the results of applying the iterator to each element.
+  // Delegates to **ECMAScript 5**'s native `map` if available.
+  _.map = _.collect = function(obj, iterator, context) {
+    var results = [];
+    if (obj == null) return results;
+    if (nativeMap && obj.map === nativeMap) return obj.map(iterator, context);
+    each(obj, function(value, index, list) {
+      results[results.length] = iterator.call(context, value, index, list);
+    });
+    return results;
+  };
+
+  var reduceError = 'Reduce of empty array with no initial value';
+
+  // **Reduce** builds up a single result from a list of values, aka `inject`,
+  // or `foldl`. Delegates to **ECMAScript 5**'s native `reduce` if available.
+  _.reduce = _.foldl = _.inject = function(obj, iterator, memo, context) {
+    var initial = arguments.length > 2;
+    if (obj == null) obj = [];
+    if (nativeReduce && obj.reduce === nativeReduce) {
+      if (context) iterator = _.bind(iterator, context);
+      return initial ? obj.reduce(iterator, memo) : obj.reduce(iterator);
+    }
+    each(obj, function(value, index, list) {
+      if (!initial) {
+        memo = value;
+        initial = true;
+      } else {
+        memo = iterator.call(context, memo, value, index, list);
+      }
+    });
+    if (!initial) throw new TypeError(reduceError);
+    return memo;
+  };
+
+  // The right-associative version of reduce, also known as `foldr`.
+  // Delegates to **ECMAScript 5**'s native `reduceRight` if available.
+  _.reduceRight = _.foldr = function(obj, iterator, memo, context) {
+    var initial = arguments.length > 2;
+    if (obj == null) obj = [];
+    if (nativeReduceRight && obj.reduceRight === nativeReduceRight) {
+      if (context) iterator = _.bind(iterator, context);
+      return initial ? obj.reduceRight(iterator, memo) : obj.reduceRight(iterator);
+    }
+    var length = obj.length;
+    if (length !== +length) {
+      var keys = _.keys(obj);
+      length = keys.length;
+    }
+    each(obj, function(value, index, list) {
+      index = keys ? keys[--length] : --length;
+      if (!initial) {
+        memo = obj[index];
+        initial = true;
+      } else {
+        memo = iterator.call(context, memo, obj[index], index, list);
+      }
+    });
+    if (!initial) throw new TypeError(reduceError);
+    return memo;
+  };
+
+  // Return the first value which passes a truth test. Aliased as `detect`.
+  _.find = _.detect = function(obj, iterator, context) {
+    var result;
+    any(obj, function(value, index, list) {
+      if (iterator.call(context, value, index, list)) {
+        result = value;
+        return true;
+      }
+    });
+    return result;
+  };
+
+  // Return all the elements that pass a truth test.
+  // Delegates to **ECMAScript 5**'s native `filter` if available.
+  // Aliased as `select`.
+  _.filter = _.select = function(obj, iterator, context) {
+    var results = [];
+    if (obj == null) return results;
+    if (nativeFilter && obj.filter === nativeFilter) return obj.filter(iterator, context);
+    each(obj, function(value, index, list) {
+      if (iterator.call(context, value, index, list)) results[results.length] = value;
+    });
+    return results;
+  };
+
+  // Return all the elements for which a truth test fails.
+  _.reject = function(obj, iterator, context) {
+    return _.filter(obj, function(value, index, list) {
+      return !iterator.call(context, value, index, list);
+    }, context);
+  };
+
+  // Determine whether all of the elements match a truth test.
+  // Delegates to **ECMAScript 5**'s native `every` if available.
+  // Aliased as `all`.
+  _.every = _.all = function(obj, iterator, context) {
+    iterator || (iterator = _.identity);
+    var result = true;
+    if (obj == null) return result;
+    if (nativeEvery && obj.every === nativeEvery) return obj.every(iterator, context);
+    each(obj, function(value, index, list) {
+      if (!(result = result && iterator.call(context, value, index, list))) return breaker;
+    });
+    return !!result;
+  };
+
+  // Determine if at least one element in the object matches a truth test.
+  // Delegates to **ECMAScript 5**'s native `some` if available.
+  // Aliased as `any`.
+  var any = _.some = _.any = function(obj, iterator, context) {
+    iterator || (iterator = _.identity);
+    var result = false;
+    if (obj == null) return result;
+    if (nativeSome && obj.some === nativeSome) return obj.some(iterator, context);
+    each(obj, function(value, index, list) {
+      if (result || (result = iterator.call(context, value, index, list))) return breaker;
+    });
+    return !!result;
+  };
+
+  // Determine if the array or object contains a given value (using `===`).
+  // Aliased as `include`.
+  _.contains = _.include = function(obj, target) {
+    if (obj == null) return false;
+    if (nativeIndexOf && obj.indexOf === nativeIndexOf) return obj.indexOf(target) != -1;
+    return any(obj, function(value) {
+      return value === target;
+    });
+  };
+
+  // Invoke a method (with arguments) on every item in a collection.
+  _.invoke = function(obj, method) {
+    var args = slice.call(arguments, 2);
+    var isFunc = _.isFunction(method);
+    return _.map(obj, function(value) {
+      return (isFunc ? method : value[method]).apply(value, args);
+    });
+  };
+
+  // Convenience version of a common use case of `map`: fetching a property.
+  _.pluck = function(obj, key) {
+    return _.map(obj, function(value){ return value[key]; });
+  };
+
+  // Convenience version of a common use case of `filter`: selecting only objects
+  // containing specific `key:value` pairs.
+  _.where = function(obj, attrs, first) {
+    if (_.isEmpty(attrs)) return first ? null : [];
+    return _[first ? 'find' : 'filter'](obj, function(value) {
+      for (var key in attrs) {
+        if (attrs[key] !== value[key]) return false;
+      }
+      return true;
+    });
+  };
+
+  // Convenience version of a common use case of `find`: getting the first object
+  // containing specific `key:value` pairs.
+  _.findWhere = function(obj, attrs) {
+    return _.where(obj, attrs, true);
+  };
+
+  // Return the maximum element or (element-based computation).
+  // Can't optimize arrays of integers longer than 65,535 elements.
+  // See: https://bugs.webkit.org/show_bug.cgi?id=80797
+  _.max = function(obj, iterator, context) {
+    if (!iterator && _.isArray(obj) && obj[0] === +obj[0] && obj.length &lt; 65535) {
+      return Math.max.apply(Math, obj);
+    }
+    if (!iterator && _.isEmpty(obj)) return -Infinity;
+    var result = {computed : -Infinity, value: -Infinity};
+    each(obj, function(value, index, list) {
+      var computed = iterator ? iterator.call(context, value, index, list) : value;
+      computed >= result.computed && (result = {value : value, computed : computed});
+    });
+    return result.value;
+  };
+
+  // Return the minimum element (or element-based computation).
+  _.min = function(obj, iterator, context) {
+    if (!iterator && _.isArray(obj) && obj[0] === +obj[0] && obj.length &lt; 65535) {
+      return Math.min.apply(Math, obj);
+    }
+    if (!iterator && _.isEmpty(obj)) return Infinity;
+    var result = {computed : Infinity, value: Infinity};
+    each(obj, function(value, index, list) {
+      var computed = iterator ? iterator.call(context, value, index, list) : value;
+      computed &lt; result.computed && (result = {value : value, computed : computed});
+    });
+    return result.value;
+  };
+
+  // Shuffle an array.
+  _.shuffle = function(obj) {
+    var rand;
+    var index = 0;
+    var shuffled = [];
+    each(obj, function(value) {
+      rand = _.random(index++);
+      shuffled[index - 1] = shuffled[rand];
+      shuffled[rand] = value;
+    });
+    return shuffled;
+  };
+
+  // An internal function to generate lookup iterators.
+  var lookupIterator = function(value) {
+    return _.isFunction(value) ? value : function(obj){ return obj[value]; };
+  };
+
+  // Sort the object's values by a criterion produced by an iterator.
+  _.sortBy = function(obj, value, context) {
+    var iterator = lookupIterator(value);
+    return _.pluck(_.map(obj, function(value, index, list) {
+      return {
+        value : value,
+        index : index,
+        criteria : iterator.call(context, value, index, list)
+      };
+    }).sort(function(left, right) {
+      var a = left.criteria;
+      var b = right.criteria;
+      if (a !== b) {
+        if (a > b || a === void 0) return 1;
+        if (a &lt; b || b === void 0) return -1;
+      }
+      return left.index &lt; right.index ? -1 : 1;
+    }), 'value');
+  };
+
+  // An internal function used for aggregate "group by" operations.
+  var group = function(obj, value, context, behavior) {
+    var result = {};
+    var iterator = lookupIterator(value || _.identity);
+    each(obj, function(value, index) {
+      var key = iterator.call(context, value, index, obj);
+      behavior(result, key, value);
+    });
+    return result;
+  };
+
+  // Groups the object's values by a criterion. Pass either a string attribute
+  // to group by, or a function that returns the criterion.
+  _.groupBy = function(obj, value, context) {
+    return group(obj, value, context, function(result, key, value) {
+      (_.has(result, key) ? result[key] : (result[key] = [])).push(value);
+    });
+  };
+
+  // Counts instances of an object that group by a certain criterion. Pass
+  // either a string attribute to count by, or a function that returns the
+  // criterion.
+  _.countBy = function(obj, value, context) {
+    return group(obj, value, context, function(result, key) {
+      if (!_.has(result, key)) result[key] = 0;
+      result[key]++;
+    });
+  };
+
+  // Use a comparator function to figure out the smallest index at which
+  // an object should be inserted so as to maintain order. Uses binary search.
+  _.sortedIndex = function(array, obj, iterator, context) {
+    iterator = iterator == null ? _.identity : lookupIterator(iterator);
+    var value = iterator.call(context, obj);
+    var low = 0, high = array.length;
+    while (low &lt; high) {
+      var mid = (low + high) >>> 1;
+      iterator.call(context, array[mid]) &lt; value ? low = mid + 1 : high = mid;
+    }
+    return low;
+  };
+
+  // Safely convert anything iterable into a real, live array.
+  _.toArray = function(obj) {
+    if (!obj) return [];
+    if (_.isArray(obj)) return slice.call(obj);
+    if (obj.length === +obj.length) return _.map(obj, _.identity);
+    return _.values(obj);
+  };
+
+  // Return the number of elements in an object.
+  _.size = function(obj) {
+    if (obj == null) return 0;
+    return (obj.length === +obj.length) ? obj.length : _.keys(obj).length;
+  };
+
+  // Array Functions
+  // ---------------
+
+  // Get the first element of an array. Passing **n** will return the first N
+  // values in the array. Aliased as `head` and `take`. The **guard** check
+  // allows it to work with `_.map`.
+  _.first = _.head = _.take = function(array, n, guard) {
+    if (array == null) return void 0;
+    return (n != null) && !guard ? slice.call(array, 0, n) : array[0];
+  };
+
+  // Returns everything but the last entry of the array. Especially useful on
+  // the arguments object. Passing **n** will return all the values in
+  // the array, excluding the last N. The **guard** check allows it to work with
+  // `_.map`.
+  _.initial = function(array, n, guard) {
+    return slice.call(array, 0, array.length - ((n == null) || guard ? 1 : n));
+  };
+
+  // Get the last element of an array. Passing **n** will return the last N
+  // values in the array. The **guard** check allows it to work with `_.map`.
+  _.last = function(array, n, guard) {
+    if (array == null) return void 0;
+    if ((n != null) && !guard) {
+      return slice.call(array, Math.max(array.length - n, 0));
+    } else {
+      return array[array.length - 1];
+    }
+  };
+
+  // Returns everything but the first entry of the array. Aliased as `tail` and `drop`.
+  // Especially useful on the arguments object. Passing an **n** will return
+  // the rest N values in the array. The **guard**
+  // check allows it to work with `_.map`.
+  _.rest = _.tail = _.drop = function(array, n, guard) {
+    return slice.call(array, (n == null) || guard ? 1 : n);
+  };
+
+  // Trim out all falsy values from an array.
+  _.compact = function(array) {
+    return _.filter(array, _.identity);
+  };
+
+  // Internal implementation of a recursive `flatten` function.
+  var flatten = function(input, shallow, output) {
+    each(input, function(value) {
+      if (_.isArray(value)) {
+        shallow ? push.apply(output, value) : flatten(value, shallow, output);
+      } else {
+        output.push(value);
+      }
+    });
+    return output;
+  };
+
+  // Return a completely flattened version of an array.
+  _.flatten = function(array, shallow) {
+    return flatten(array, shallow, []);
+  };
+
+  // Return a version of the array that does not contain the specified value(s).
+  _.without = function(array) {
+    return _.difference(array, slice.call(arguments, 1));
+  };
+
+  // Produce a duplicate-free version of the array. If the array has already
+  // been sorted, you have the option of using a faster algorithm.
+  // Aliased as `unique`.
+  _.uniq = _.unique = function(array, isSorted, iterator, context) {
+    if (_.isFunction(isSorted)) {
+      context = iterator;
+      iterator = isSorted;
+      isSorted = false;
+    }
+    var initial = iterator ? _.map(array, iterator, context) : array;
+    var results = [];
+    var seen = [];
+    each(initial, function(value, index) {
+      if (isSorted ? (!index || seen[seen.length - 1] !== value) : !_.contains(seen, value)) {
+        seen.push(value);
+        results.push(array[index]);
+      }
+    });
+    return results;
+  };
+
+  // Produce an array that contains the union: each distinct element from all of
+  // the passed-in arrays.
+  _.union = function() {
+    return _.uniq(concat.apply(ArrayProto, arguments));
+  };
+
+  // Produce an array that contains every item shared between all the
+  // passed-in arrays.
+  _.intersection = function(array) {
+    var rest = slice.call(arguments, 1);
+    return _.filter(_.uniq(array), function(item) {
+      return _.every(rest, function(other) {
+        return _.indexOf(other, item) >= 0;
+      });
+    });
+  };
+
+  // Take the difference between one array and a number of other arrays.
+  // Only the elements present in just the first array will remain.
+  _.difference = function(array) {
+    var rest = concat.apply(ArrayProto, slice.call(arguments, 1));
+    return _.filter(array, function(value){ return !_.contains(rest, value); });
+  };
+
+  // Zip together multiple lists into a single array -- elements that share
+  // an index go together.
+  _.zip = function() {
+    var args = slice.call(arguments);
+    var length = _.max(_.pluck(args, 'length'));
+    var results = new Array(length);
+    for (var i = 0; i &lt; length; i++) {
+      results[i] = _.pluck(args, "" + i);
+    }
+    return results;
+  };
+
+  // Converts lists into objects. Pass either a single array of `[key, value]`
+  // pairs, or two parallel arrays of the same length -- one of keys, and one of
+  // the corresponding values.
+  _.object = function(list, values) {
+    if (list == null) return {};
+    var result = {};
+    for (var i = 0, l = list.length; i &lt; l; i++) {
+      if (values) {
+        result[list[i]] = values[i];
+      } else {
+        result[list[i][0]] = list[i][1];
+      }
+    }
+    return result;
+  };
+
+  // If the browser doesn't supply us with indexOf (I'm looking at you, **MSIE**),
+  // we need this function. Return the position of the first occurrence of an
+  // item in an array, or -1 if the item is not included in the array.
+  // Delegates to **ECMAScript 5**'s native `indexOf` if available.
+  // If the array is large and already in sort order, pass `true`
+  // for **isSorted** to use binary search.
+  _.indexOf = function(array, item, isSorted) {
+    if (array == null) return -1;
+    var i = 0, l = array.length;
+    if (isSorted) {
+      if (typeof isSorted == 'number') {
+        i = (isSorted &lt; 0 ? Math.max(0, l + isSorted) : isSorted);
+      } else {
+        i = _.sortedIndex(array, item);
+        return array[i] === item ? i : -1;
+      }
+    }
+    if (nativeIndexOf && array.indexOf === nativeIndexOf) return array.indexOf(item, isSorted);
+    for (; i &lt; l; i++) if (array[i] === item) return i;
+    return -1;
+  };
+
+  // Delegates to **ECMAScript 5**'s native `lastIndexOf` if available.
+  _.lastIndexOf = function(array, item, from) {
+    if (array == null) return -1;
+    var hasIndex = from != null;
+    if (nativeLastIndexOf && array.lastIndexOf === nativeLastIndexOf) {
+      return hasIndex ? array.lastIndexOf(item, from) : array.lastIndexOf(item);
+    }
+    var i = (hasIndex ? from : array.length);
+    while (i--) if (array[i] === item) return i;
+    return -1;
+  };
+
+  // Generate an integer Array containing an arithmetic progression. A port of
+  // the native Python `range()` function. See
+  // [the Python documentation](http://docs.python.org/library/functions.html#range).
+  _.range = function(start, stop, step) {
+    if (arguments.length &lt;= 1) {
+      stop = start || 0;
+      start = 0;
+    }
+    step = arguments[2] || 1;
+
+    var len = Math.max(Math.ceil((stop - start) / step), 0);
+    var idx = 0;
+    var range = new Array(len);
+
+    while(idx &lt; len) {
+      range[idx++] = start;
+      start += step;
+    }
+
+    return range;
+  };
+
+  // Function (ahem) Functions
+  // ------------------
+
+  // Create a function bound to a given object (assigning `this`, and arguments,
+  // optionally). Delegates to **ECMAScript 5**'s native `Function.bind` if
+  // available.
+  _.bind = function(func, context) {
+    if (func.bind === nativeBind && nativeBind) return nativeBind.apply(func, slice.call(arguments, 1));
+    var args = slice.call(arguments, 2);
+    return function() {
+      return func.apply(context, args.concat(slice.call(arguments)));
+    };
+  };
+
+  // Partially apply a function by creating a version that has had some of its
+  // arguments pre-filled, without changing its dynamic `this` context.
+  _.partial = function(func) {
+    var args = slice.call(arguments, 1);
+    return function() {
+      return func.apply(this, args.concat(slice.call(arguments)));
+    };
+  };
+
+  // Bind all of an object's methods to that object. Useful for ensuring that
+  // all callbacks defined on an object belong to it.
+  _.bindAll = function(obj) {
+    var funcs = slice.call(arguments, 1);
+    if (funcs.length === 0) funcs = _.functions(obj);
+    each(funcs, function(f) { obj[f] = _.bind(obj[f], obj); });
+    return obj;
+  };
+
+  // Memoize an expensive function by storing its results.
+  _.memoize = function(func, hasher) {
+    var memo = {};
+    hasher || (hasher = _.identity);
+    return function() {
+      var key = hasher.apply(this, arguments);
+      return _.has(memo, key) ? memo[key] : (memo[key] = func.apply(this, arguments));
+    };
+  };
+
+  // Delays a function for the given number of milliseconds, and then calls
+  // it with the arguments supplied.
+  _.delay = function(func, wait) {
+    var args = slice.call(arguments, 2);
+    return setTimeout(function(){ return func.apply(null, args); }, wait);
+  };
+
+  // Defers a function, scheduling it to run after the current call stack has
+  // cleared.
+  _.defer = function(func) {
+    return _.delay.apply(_, [func, 1].concat(slice.call(arguments, 1)));
+  };
+
+  // Returns a function, that, when invoked, will only be triggered at most once
+  // during a given window of time.
+  _.throttle = function(func, wait) {
+    var context, args, timeout, result;
+    var previous = 0;
+    var later = function() {
+      previous = new Date;
+      timeout = null;
+      result = func.apply(context, args);
+    };
+    return function() {
+      var now = new Date;
+      var remaining = wait - (now - previous);
+      context = this;
+      args = arguments;
+      if (remaining &lt;= 0) {
+        clearTimeout(timeout);
+        timeout = null;
+        previous = now;
+        result = func.apply(context, args);
+      } else if (!timeout) {
+        timeout = setTimeout(later, remaining);
+      }
+      return result;
+    };
+  };
+
+  // Returns a function, that, as long as it continues to be invoked, will not
+  // be triggered. The function will be called after it stops being called for
+  // N milliseconds. If `immediate` is passed, trigger the function on the
+  // leading edge, instead of the trailing.
+  _.debounce = function(func, wait, immediate) {
+    var timeout, result;
+    return function() {
+      var context = this, args = arguments;
+      var later = function() {
+        timeout = null;
+        if (!immediate) result = func.apply(context, args);
+      };
+      var callNow = immediate && !timeout;
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+      if (callNow) result = func.apply(context, args);
+      return result;
+    };
+  };
+
+  // Returns a function that will be executed at most one time, no matter how
+  // often you call it. Useful for lazy initialization.
+  _.once = function(func) {
+    var ran = false, memo;
+    return function() {
+      if (ran) return memo;
+      ran = true;
+      memo = func.apply(this, arguments);
+      func = null;
+      return memo;
+    };
+  };
+
+  // Returns the first function passed as an argument to the second,
+  // allowing you to adjust arguments, run code before and after, and
+  // conditionally execute the original function.
+  _.wrap = function(func, wrapper) {
+    return function() {
+      var args = [func];
+      push.apply(args, arguments);
+      return wrapper.apply(this, args);
+    };
+  };
+
+  // Returns a function that is the composition of a list of functions, each
+  // consuming the return value of the function that follows.
+  _.compose = function() {
+    var funcs = arguments;
+    return function() {
+      var args = arguments;
+      for (var i = funcs.length - 1; i >= 0; i--) {
+        args = [funcs[i].apply(this, args)];
+      }
+      return args[0];
+    };
+  };
+
+  // Returns a function that will only be executed after being called N times.
+  _.after = function(times, func) {
+    if (times &lt;= 0) return func();
+    return function() {
+      if (--times &lt; 1) {
+        return func.apply(this, arguments);
+      }
+    };
+  };
+
+  // Object Functions
+  // ----------------
+
+  // Retrieve the names of an object's properties.
+  // Delegates to **ECMAScript 5**'s native `Object.keys`
+  _.keys = nativeKeys || function(obj) {
+    if (obj !== Object(obj)) throw new TypeError('Invalid object');
+    var keys = [];
+    for (var key in obj) if (_.has(obj, key)) keys[keys.length] = key;
+    return keys;
+  };
+
+  // Retrieve the values of an object's properties.
+  _.values = function(obj) {
+    var values = [];
+    for (var key in obj) if (_.has(obj, key)) values.push(obj[key]);
+    return values;
+  };
+
+  // Convert an object into a list of `[key, value]` pairs.
+  _.pairs = function(obj) {
+    var pairs = [];
+    for (var key in obj) if (_.has(obj, key)) pairs.push([key, obj[key]]);
+    return pairs;
+  };
+
+  // Invert the keys and values of an object. The values must be serializable.
+  _.invert = function(obj) {
+    var result = {};
+    for (var key in obj) if (_.has(obj, key)) result[obj[key]] = key;
+    return result;
+  };
+
+  // Return a sorted list of the function names available on the object.
+  // Aliased as `methods`
+  _.functions = _.methods = function(obj) {
+    var names = [];
+    for (var key in obj) {
+      if (_.isFunction(obj[key])) names.push(key);
+    }
+    return names.sort();
+  };
+
+  // Extend a given object with all the properties in passed-in object(s).
+  _.extend = function(obj) {
+    each(slice.call(arguments, 1), function(source) {
+      if (source) {
+        for (var prop in source) {
+          obj[prop] = source[prop];
+        }
+      }
+    });
+    return obj;
+  };
+
+  // Return a copy of the object only containing the whitelisted properties.
+  _.pick = function(obj) {
+    var copy = {};
+    var keys = concat.apply(ArrayProto, slice.call(arguments, 1));
+    each(keys, function(key) {
+      if (key in obj) copy[key] = obj[key];
+    });
+    return copy;
+  };
+
+   // Return a copy of the object without the blacklisted properties.
+  _.omit = function(obj) {
+    var copy = {};
+    var keys = concat.apply(ArrayProto, slice.call(arguments, 1));
+    for (var key in obj) {
+      if (!_.contains(keys, key)) copy[key] = obj[key];
+    }
+    return copy;
+  };
+
+  // Fill in a given object with default properties.
+  _.defaults = function(obj) {
+    each(slice.call(arguments, 1), function(source) {
+      if (source) {
+        for (var prop in source) {
+          if (obj[prop] == null) obj[prop] = source[prop];
+        }
+      }
+    });
+    return obj;
+  };
+
+  // Create a (shallow-cloned) duplicate of an object.
+  _.clone = function(obj) {
+    if (!_.isObject(obj)) return obj;
+    return _.isArray(obj) ? obj.slice() : _.extend({}, obj);
+  };
+
+  // Invokes interceptor with the obj, and then returns obj.
+  // The primary purpose of this method is to "tap into" a method chain, in
+  // order to perform operations on intermediate results within the chain.
+  _.tap = function(obj, interceptor) {
+    interceptor(obj);
+    return obj;
+  };
+
+  // Internal recursive comparison function for `isEqual`.
+  var eq = function(a, b, aStack, bStack) {
+    // Identical objects are equal. `0 === -0`, but they aren't identical.
+    // See the Harmony `egal` proposal: http://wiki.ecmascript.org/doku.php?id=harmony:egal.
+    if (a === b) return a !== 0 || 1 / a == 1 / b;
+    // A strict comparison is necessary because `null == undefined`.
+    if (a == null || b == null) return a === b;
+    // Unwrap any wrapped objects.
+    if (a instanceof _) a = a._wrapped;
+    if (b instanceof _) b = b._wrapped;
+    // Compare `[[Class]]` names.
+    var className = toString.call(a);
+    if (className != toString.call(b)) return false;
+    switch (className) {
+      // Strings, numbers, dates, and booleans are compared by value.
+      case '[object String]':
+        // Primitives and their corresponding object wrappers are equivalent; thus, `"5"` is
+        // equivalent to `new String("5")`.
+        return a == String(b);
+      case '[object Number]':
+        // `NaN`s are equivalent, but non-reflexive. An `egal` comparison is performed for
+        // other numeric values.
+        return a != +a ? b != +b : (a == 0 ? 1 / a == 1 / b : a == +b);
+      case '[object Date]':
+      case '[object Boolean]':
+        // Coerce dates and booleans to numeric primitive values. Dates are compared by their
+        // millisecond representations. Note that invalid dates with millisecond representations
+        // of `NaN` are not equivalent.
+        return +a == +b;
+      // RegExps are compared by their source patterns and flags.
+      case '[object RegExp]':
+        return a.source == b.source &&
+               a.global == b.global &&
+               a.multiline == b.multiline &&
+               a.ignoreCase == b.ignoreCase;
+    }
+    if (typeof a != 'object' || typeof b != 'object') return false;
+    // Assume equality for cyclic structures. The algorithm for detecting cyclic
+    // structures is adapted from ES 5.1 section 15.12.3, abstract operation `JO`.
+    var length = aStack.length;
+    while (length--) {
+      // Linear search. Performance is inversely proportional to the number of
+      // unique nested structures.
+      if (aStack[length] == a) return bStack[length] == b;
+    }
+    // Add the first object to the stack of traversed objects.
+    aStack.push(a);
+    bStack.push(b);
+    var size = 0, result = true;
+    // Recursively compare objects and arrays.
+    if (className == '[object Array]') {
+      // Compare array lengths to determine if a deep comparison is necessary.
+      size = a.length;
+      result = size == b.length;
+      if (result) {
+        // Deep compare the contents, ignoring non-numeric properties.
+        while (size--) {
+          if (!(result = eq(a[size], b[size], aStack, bStack))) break;
+        }
+      }
+    } else {
+      // Objects with different constructors are not equivalent, but `Object`s
+      // from different frames are.
+      var aCtor = a.constructor, bCtor = b.constructor;
+      if (aCtor !== bCtor && !(_.isFunction(aCtor) && (aCtor instanceof aCtor) &&
+                               _.isFunction(bCtor) && (bCtor instanceof bCtor))) {
+        return false;
+      }
+      // Deep compare objects.
+      for (var key in a) {
+        if (_.has(a, key)) {
+          // Count the expected number of properties.
+          size++;
+          // Deep compare each member.
+          if (!(result = _.has(b, key) && eq(a[key], b[key], aStack, bStack))) break;
+        }
+      }
+      // Ensure that both objects contain the same number of properties.
+      if (result) {
+        for (key in b) {
+          if (_.has(b, key) && !(size--)) break;
+        }
+        result = !size;
+      }
+    }
+    // Remove the first object from the stack of traversed objects.
+    aStack.pop();
+    bStack.pop();
+    return result;
+  };
+
+  // Perform a deep comparison to check if two objects are equal.
+  _.isEqual = function(a, b) {
+    return eq(a, b, [], []);
+  };
+
+  // Is a given array, string, or object empty?
+  // An "empty" object has no enumerable own-properties.
+  _.isEmpty = function(obj) {
+    if (obj == null) return true;
+    if (_.isArray(obj) || _.isString(obj)) return obj.length === 0;
+    for (var key in obj) if (_.has(obj, key)) return false;
+    return true;
+  };
+
+  // Is a given value a DOM element?
+  _.isElement = function(obj) {
+    return !!(obj && obj.nodeType === 1);
+  };
+
+  // Is a given value an array?
+  // Delegates to ECMA5's native Array.isArray
+  _.isArray = nativeIsArray || function(obj) {
+    return toString.call(obj) == '[object Array]';
+  };
+
+  // Is a given variable an object?
+  _.isObject = function(obj) {
+    return obj === Object(obj);
+  };
+
+  // Add some isType methods: isArguments, isFunction, isString, isNumber, isDate, isRegExp.
+  each(['Arguments', 'Function', 'String', 'Number', 'Date', 'RegExp'], function(name) {
+    _['is' + name] = function(obj) {
+      return toString.call(obj) == '[object ' + name + ']';
+    };
+  });
+
+  // Define a fallback version of the method in browsers (ahem, IE), where
+  // there isn't any inspectable "Arguments" type.
+  if (!_.isArguments(arguments)) {
+    _.isArguments = function(obj) {
+      return !!(obj && _.has(obj, 'callee'));
+    };
+  }
+
+  // Optimize `isFunction` if appropriate.
+  if (typeof (/./) !== 'function') {
+    _.isFunction = function(obj) {
+      return typeof obj === 'function';
+    };
+  }
+
+  // Is a given object a finite number?
+  _.isFinite = function(obj) {
+    return isFinite(obj) && !isNaN(parseFloat(obj));
+  };
+
+  // Is the given value `NaN`? (NaN is the only number which does not equal itself).
+  _.isNaN = function(obj) {
+    return _.isNumber(obj) && obj != +obj;
+  };
+
+  // Is a given value a boolean?
+  _.isBoolean = function(obj) {
+    return obj === true || obj === false || toString.call(obj) == '[object Boolean]';
+  };
+
+  // Is a given value equal to null?
+  _.isNull = function(obj) {
+    return obj === null;
+  };
+
+  // Is a given variable undefined?
+  _.isUndefined = function(obj) {
+    return obj === void 0;
+  };
+
+  // Shortcut function for checking if an object has a given property directly
+  // on itself (in other words, not on a prototype).
+  _.has = function(obj, key) {
+    return hasOwnProperty.call(obj, key);
+  };
+
+  // Utility Functions
+  // -----------------
+
+  // Run Underscore.js in *noConflict* mode, returning the `_` variable to its
+  // previous owner. Returns a reference to the Underscore object.
+  _.noConflict = function() {
+    root._ = previousUnderscore;
+    return this;
+  };
+
+  // Keep the identity function around for default iterators.
+  _.identity = function(value) {
+    return value;
+  };
+
+  // Run a function **n** times.
+  _.times = function(n, iterator, context) {
+    var accum = Array(n);
+    for (var i = 0; i &lt; n; i++) accum[i] = iterator.call(context, i);
+    return accum;
+  };
+
+  // Return a random integer between min and max (inclusive).
+  _.random = function(min, max) {
+    if (max == null) {
+      max = min;
+      min = 0;
+    }
+    return min + Math.floor(Math.random() * (max - min + 1));
+  };
+
+  // List of HTML entities for escaping.
+  var entityMap = {
+    escape: {
+      '&': '&amp;',
+      '&lt;': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#x27;',
+      '/': '&#x2F;'
+    }
+  };
+  entityMap.unescape = _.invert(entityMap.escape);
+
+  // Regexes containing the keys and values listed immediately above.
+  var entityRegexes = {
+    escape:   new RegExp('[' + _.keys(entityMap.escape).join('') + ']', 'g'),
+    unescape: new RegExp('(' + _.keys(entityMap.unescape).join('|') + ')', 'g')
+  };
+
+  // Functions for escaping and unescaping strings to/from HTML interpolation.
+  _.each(['escape', 'unescape'], function(method) {
+    _[method] = function(string) {
+      if (string == null) return '';
+      return ('' + string).replace(entityRegexes[method], function(match) {
+        return entityMap[method][match];
+      });
+    };
+  });
+
+  // If the value of the named property is a function then invoke it;
+  // otherwise, return it.
+  _.result = function(object, property) {
+    if (object == null) return null;
+    var value = object[property];
+    return _.isFunction(value) ? value.call(object) : value;
+  };
+
+  // Add your own custom functions to the Underscore object.
+  _.mixin = function(obj) {
+    each(_.functions(obj), function(name){
+      var func = _[name] = obj[name];
+      _.prototype[name] = function() {
+        var args = [this._wrapped];
+        push.apply(args, arguments);
+        return result.call(this, func.apply(_, args));
+      };
+    });
+  };
+
+  // Generate a unique integer id (unique within the entire client session).
+  // Useful for temporary DOM ids.
+  var idCounter = 0;
+  _.uniqueId = function(prefix) {
+    var id = ++idCounter + '';
+    return prefix ? prefix + id : id;
+  };
+
+  // By default, Underscore uses ERB-style template delimiters, change the
+  // following template settings to use alternative delimiters.
+  _.templateSettings = {
+    evaluate    : /&lt;%([\s\S]+?)%>/g,
+    interpolate : /&lt;%=([\s\S]+?)%>/g,
+    escape      : /&lt;%-([\s\S]+?)%>/g
+  };
+
+  // When customizing `templateSettings`, if you don't want to define an
+  // interpolation, evaluation or escaping regex, we need one that is
+  // guaranteed not to match.
+  var noMatch = /(.)^/;
+
+  // Certain characters need to be escaped so that they can be put into a
+  // string literal.
+  var escapes = {
+    "'":      "'",
+    '\\':     '\\',
+    '\r':     'r',
+    '\n':     'n',
+    '\t':     't',
+    '\u2028': 'u2028',
+    '\u2029': 'u2029'
+  };
+
+  var escaper = /\\|'|\r|\n|\t|\u2028|\u2029/g;
+
+  // JavaScript micro-templating, similar to John Resig's implementation.
+  // Underscore templating handles arbitrary delimiters, preserves whitespace,
+  // and correctly escapes quotes within interpolated code.
+  _.template = function(text, data, settings) {
+    var render;
+    settings = _.defaults({}, settings, _.templateSettings);
+
+    // Combine delimiters into one regular expression via alternation.
+    var matcher = new RegExp([
+      (settings.escape || noMatch).source,
+      (settings.interpolate || noMatch).source,
+      (settings.evaluate || noMatch).source
+    ].join('|') + '|$', 'g');
+
+    // Compile the template source, escaping string literals appropriately.
+    var index = 0;
+    var source = "__p+='";
+    text.replace(matcher, function(match, escape, interpolate, evaluate, offset) {
+      source += text.slice(index, offset)
+        .replace(escaper, function(match) { return '\\' + escapes[match]; });
+
+      if (escape) {
+        source += "'+\n((__t=(" + escape + "))==null?'':_.escape(__t))+\n'";
+      }
+      if (interpolate) {
+        source += "'+\n((__t=(" + interpolate + "))==null?'':__t)+\n'";
+      }
+      if (evaluate) {
+        source += "';\n" + evaluate + "\n__p+='";
+      }
+      index = offset + match.length;
+      return match;
+    });
+    source += "';\n";
+
+    // If a variable is not specified, place data values in local scope.
+    if (!settings.variable) source = 'with(obj||{}){\n' + source + '}\n';
+
+    source = "var __t,__p='',__j=Array.prototype.join," +
+      "print=function(){__p+=__j.call(arguments,'');};\n" +
+      source + "return __p;\n";
+
+    try {
+      render = new Function(settings.variable || 'obj', '_', source);
+    } catch (e) {
+      e.source = source;
+      throw e;
+    }
+
+    if (data) return render(data, _);
+    var template = function(data) {
+      return render.call(this, data, _);
+    };
+
+    // Provide the compiled function source as a convenience for precompilation.
+    template.source = 'function(' + (settings.variable || 'obj') + '){\n' + source + '}';
+
+    return template;
+  };
+
+  // Add a "chain" function, which will delegate to the wrapper.
+  _.chain = function(obj) {
+    return _(obj).chain();
+  };
+
+  // OOP
+  // ---------------
+  // If Underscore is called as a function, it returns a wrapped object that
+  // can be used OO-style. This wrapper holds altered versions of all the
+  // underscore functions. Wrapped objects may be chained.
+
+  // Helper function to continue chaining intermediate results.
+  var result = function(obj) {
+    return this._chain ? _(obj).chain() : obj;
+  };
+
+  // Add all of the Underscore functions to the wrapper object.
+  _.mixin(_);
+
+  // Add all mutator Array functions to the wrapper.
+  each(['pop', 'push', 'reverse', 'shift', 'sort', 'splice', 'unshift'], function(name) {
+    var method = ArrayProto[name];
+    _.prototype[name] = function() {
+      var obj = this._wrapped;
+      method.apply(obj, arguments);
+      if ((name == 'shift' || name == 'splice') && obj.length === 0) delete obj[0];
+      return result.call(this, obj);
+    };
+  });
+
+  // Add all accessor Array functions to the wrapper.
+  each(['concat', 'join', 'slice'], function(name) {
+    var method = ArrayProto[name];
+    _.prototype[name] = function() {
+      return result.call(this, method.apply(this._wrapped, arguments));
+    };
+  });
+
+  _.extend(_.prototype, {
+
+    // Start chaining a wrapped Underscore object.
+    chain: function() {
+      this._chain = true;
+      return this;
+    },
+
+    // Extracts the result from a wrapped and chained object.
+    value: function() {
+      return this._wrapped;
+    }
+
+  });
+
+}).call(this);
+
+/**
+ *  DOMParser HTML extension
+ *  2012-09-04
+ * 
+ *  By Eli Grey, http://eligrey.com
+ *  Public domain.
+ *  NO WARRANTY EXPRESSED OR IMPLIED. USE AT YOUR OWN RISK.
+ *
+ *  @source https://gist.github.com/kketch/5656689
+ */
+
+(function(DOMParser) {
+
+	var parseFromStringNative = DOMParser.prototype.parseFromString;
+
+	// Firefox/Opera/IE throw errors on unsupported types
+	try {
+
+		// WebKit returns null on unsupported types
+		if ((new DOMParser).parseFromString("", "text/html")) {
+
+			// text/html parsing is natively supported
+			return;
+
+		}
+
+	} catch (e) {}
+
+	DOMParser.prototype.parseFromString = function(markup, type) {
+
+		if (/^\s*text\/html\s*(?:;|$)/i.test(type)) {
+
+			var doc = document.implementation.createHTMLDocument("");
+
+			doc.open();
+			doc.write(markup);
+			doc.close();
+
+			return doc;
+
+		} else {
+
+			return parseFromStringNative.apply(this, arguments);
+
+		}
+
+	};
+
+}(DOMParser));
+/**
+ * Eclair.js
+ *  main file
+ */
+
+(function (w, _) {
+	
+	/**
+	 *  &lt;p> Eclair global variable namespace. &lt;/p>
+	 *  
+	 *  @version 0.2.4
+	 *  @global
+	 *  @class
+	 *  @name Eclair
+	 *
+	 */
+	var Eclair = {},
+		doc = w.document;
+
+	// Expose Eclair to the global scope
+	Eclair._Eclair = w.Eclair = Eclair;
+
+	// Module array
+	Eclair._modules = [];
+
+	/**
+	 *  Eclair version number
+	 *
+	 *  @name Eclair.VERSION
+	 *  @type String
+	 */
+	Eclair.VERSION = "0.2.4";
+
+	/**
+	 *  Reference to the global object
+	 *
+	 *  @name Eclair.global
+	 *  @type Object
+	 */
+	Eclair.global = Eclair.window = w;
+
+	/**
+	 *  Reference to the HTML document
+	 *
+	 *  @name Eclair.document
+	 *  @type HTMLDocument
+	 */
+	Eclair.document = doc;
+
+	/**
+	 *  Reference to the HTML document head section DOM element
+	 *
+	 *  @name Eclair.head
+	 *  @type HTMLHeadElement
+	 */
+	Eclair.head = doc.head || doc.getElementsByTagName('head')[0];
+
+	/**
+	 *  Check if a module is loaded
+	 *
+	 *  @method
+	 *  @memberof Eclair
+	 *  @param {String} moduleName
+	 *  @return {Boolean} True when the module is already loaded, false when it isn't
+	 */
+	Eclair.isLoaded = function (moduleName) {
+
+		if (this._modules.indexOf(moduleName) !== -1)
+			return true;
+
+		return false;
+
+	 }
+
+	/**
+	 *  &lt;p> Eclair Module constructor &lt;/p>
+	 *  &lt;p> A Eclair Module can be a simple object operating
+	 *  on a private scope like an anonymous function,
+	 *  or a "class"&lt;/p>
+	 *  &lt;p> See Eclair.require documentation for more information on caching and how to disable it &lt;/p>
+	 *
+	 *  @constructor
+	 *  @memberof Eclair
+	 *
+	 *  @param {String} namespace Module namespace
+	 *  @param {Object} options Module parameters object
+	 *	@param {Function} [options.initializer=function(){}] Constructor
+	 *  @param {Function} [options.inherit=function(){}] Extend a super class
+	 *  @param {Object|String} [options.dependencies] Dependencies needed by the module
+	 *  @param {Function} [options.onload] Code to be executed when dependencies specified by the module has been fetched
+	 *
+	 *	@example var MyModule = Eclair.Module("MyModule", { // in MyModule.js
+	 *		inherit: Eclair.EventEmitter,
+	 *		dependencies: ['SomeModuleName','SomeOtherModuleName'],
+	 *		onload: function () {
+	 *			console.log("My module's dependencies are loaded")
+	 *		}
+	 *  })
+	 *
+	 *  MyModule.myStaticMethod = function () {
+	 *  	
+	 *  }
+	 *
+	 *	@example Eclair.require('MyModule', function () { // in index.html, global scope
+	 *  	var MyModule = eclair.MyModule
+	 *		MyModule.myStaticMethod()
+	 *
+	 *  	var myInstance = new MyModule;
+	 *
+	 *  	// we can then use Eclair.EventEmitter methods on our module
+	 *  	// like this one to add a listener
+	 *  	myInstance.on("someEvent", function () {
+	 *  		// do some action
+	 *  	})
+	 *
+	 *  	// then we can emit an event to trigger the listener
+	 *  	myInstance.emit("someEvent")
+	 *  })
+	 *
+	 */
+	Eclair.Module = function (namespace, options) {
+
+		var module,
+			initializer;
+
+		if (this._Eclair.isLoaded(namespace)) {
+			throw new Error('Module namespace already used.');
+		}
+
+		options = _.isUndefined(options) ? {} : options;
+		initializer = options.initializer || function () {};
+		module = options.bootstraper || initializer;
+
+		if (module.prototype) {
+
+			if (options.inherit) {
+				module.prototype = new options.inherit;
+				module.prototype.constructor = initializer;
+			}
+
+			module.prototype._initializer = initializer;	
+
+		}
+
+		// Load dependencies
+		if (options.dependencies) {
+			this._Eclair.load(options);
+		}
+
+		this[namespace] = module;
+
+		module._Eclair = this._Eclair;
+		module.Module = this.Module;
+		module._super = this;
+
+		this._Eclair._modules.push(namespace);
+
+		return module;
+
+	}
+
+})(this, _);
+/**
+ * Eclair.EventEmitter
+ *
+ */
+
+(function(Eclair, _) {
+
+	/**
+	 *  &lt;p> EventEmitter Compenent Constructor, this a simple event emitter,
+	 *  no parameters needed to create an instance from it. &lt;/p>
+	 *  &lt;p> This compenent enable easy non blocking event-driven programming with javascript &lt;/p>
+	 *
+	 *  @constructor
+	 *  @memberof Eclair
+	 *
+	 *  @example // A new instance of EventEmitter
+	 *  var emitter = new Eclair.EventEmitter;
+	 */
+	var EventEmitter = Eclair.Module("EventEmitter", {
+		
+			initializer: function () {
+				
+				this.delegate = {};
+				
+			}
+		
+		}),
+		emitterProto = EventEmitter.prototype,
+		spaceRegex = /\s/;
+
+	/**
+	 *  Find the index of the listener
+	 *
+	 *  @param {Function} listener
+	 *	 @param {Array} listeners
+	 */
+	var findListener = function (listener, listeners) {
+
+		return _(listeners).indexOf(listener);
+
+	}
+
+	 /**
+	  *  Return the event object or create it if required
+	  *
+	  *  @method
+	  *  @private
+	  *  @memberof Eclair.EventEmitter
+	  *  @name _getEvents
+	  *  @instance
+	  *  @return {Object} events
+	  */
+	 emitterProto._getEvents = function () {
+
+		 return this._events || (this._events = {});
+
+	 }
+
+	 /**
+	  *  Return a listener array for a specific event,
+	  *  initialize the event object and listener arrays if required
+	  *
+	  *  @method
+	  *  @memberof Eclair.EventEmitter
+	  *  @name getListeners
+	  *  @instance
+	  *  @param {String} event Name of the event
+	  *  @return {Array} All listeners of this event
+	  */
+	 emitterProto.getListeners = function (event) {
+
+		 var events = this._getEvents();
+
+		 return events[event] || (events[event] = []);
+
+	 }
+
+	 /**
+	  *  Remove all listeners for a specified event
+	  *
+	  *  @method
+	  *  @memberof Eclair.EventEmitter
+	  *  @name removeEvent
+	  *  @instance
+	  *  @param {String} event Name of the event to be removed (listeners are removed too)
+	  */
+	 emitterProto.removeEvent = function (event) {
+
+		 if (event) {
+			 delete this._getEvents()[event];
+		 } else {
+			 delete this._events;
+		 }
+
+		 return this;
+
+	 }
+
+	 /**
+	  *  &lt;p> Add an event listener to the EventEmitter instance. &lt;/p>
+	  *  &lt;p> &lt;strong>"addEventListener" can be used as alias.&lt;/strong> &lt;/p>
+	  *
+	  *  @method
+	  *  @memberof Eclair.EventEmitter
+	  *  @name addEventListener
+	  *  @instance
+	  *  @param {String} event Name of the event to listen for
+	  *  @param {Function} listener
+	  *
+	  *  @example emitter.on("message", function (message) {
+	  *  	console.log("New message: ", message)
+	  *  ));
+	  */
+	 emitterProto.on = function (event, listener) {
+		
+		 if (event.match(spaceRegex)) {
+			 
+			 return this._onEvents(event.split(spaceRegex), listener);
+			 
+		 }
+		 
+		 // Do not attach anything else that a function:
+		 if (typeof listener !== 'function') {
+			 return;
+		 }
+
+		 var listeners = this.getListeners(event);
+
+		 if (findListener(listener, listeners) === -1) {
+			 listeners.push(listener);
+		 }
+		 
+		 this.delegate.onNewListener && (this.delegate.onNewListener(event, listener));
+					 
+		 // To allow chaining return an instance of Eclair.EventEmitter
+		 return this;
+
+	 }
+	 
+	 emitterProto._onEvents = function (events, listener) {
+		 
+		 var self = this;
+		 
+		 _.each(events, function (event) {
+			 
+			self.on(event, listener);
+			 
+		 })
+		 
+	 }
+
+	 /**
+	  *  &lt;p> Remove an event listener. &lt;/p>
+	  *  &lt;p> &lt;strong>"removeEventListener" can be used as alias &lt;/strong>&lt;/p>
+	  *
+	  *  @method
+	  *  @memberof Eclair.EventEmitter
+	  *  @name removeEventListener
+	  *  @instance
+	  *  @param {String} event Name of the event
+	  *  @param {Function} listener Listener method reference to be removed
+	  *
+	  *  @example emitter.off("someEvent", myListener);
+	  */
+	 emitterProto.off = function (event, listener) {
+
+		 var listeners = this.getListeners(event),
+			 index = findListener(listener, listeners);
+
+		 if (index !== -1) {
+			 listeners.splice(index, 1);
+
+			 // If the listener array is empty, we can remove the event
+			 if (listeners.length === 0) {
+				 this.removeEvent(event);
+			 }
+		 }
+
+		 return this;
+
+	 }
+
+	 /**
+	  *  &lt;p> Trigger an event. &lt;/p>
+	  *
+	  *  @method
+	  *  @memberof Eclair.EventEmitter
+	  *  @name emit
+	  *  @instance
+	  *  @param {String} event Name of the event to be triggered
+	  *  @param {...String} args Arguments to be passed to the listener
+	  *
+	  *  @example emitter.emit("message", "Hello there");
+	  *  @example // Or with multiple arguments
+	  *  emitter.emit("event", arg1, arg2, arg3, arg4);
+	  *  
+	  */
+	 emitterProto.emit = function (event, arg1, arg2, bound) {
+
+		 var listeners = this.getListeners(event),
+			 args = bound ? _.toArray(arguments).slice(1) : false,
+			 i = listeners.length,
+			 response;
+
+		 while (i--) {
+
+			 response = args ? listeners[i].apply(this, args) : listeners[i].call(this, arg1, arg2);
+
+			 // if the listener return true, then we should remove it
+			 if (response === true) {
+				 this.off(event, listeners[i]);
+			 }
+
+		 }
+
+		 return this;
+
+	 }
+
+	 /**
+	  *  &lt;p> Trigger an event in a specific context. &lt;/p>
+	  *
+	  *  @method
+	  *  @memberof Eclair.EventEmitter
+	  *  @name emit
+	  *  @instance
+	  *  @param {String} event Name of the event to be triggered
+	  *  @param {...String} args Arguments to be passed to the listener
+	  *
+	  *  
+	  */
+	 emitterProto.emitAs = function (context, event, arg1, arg2, bound) {
+
+	 	var listeners = this.getListeners(event),
+			args = bound ? _.toArray(arguments).slice(2) : false,
+			i = listeners.length,
+			response;
+
+		while (i--) {
+
+			response = args ? listeners[i].apply(context, args) : listeners[i].call(context, arg1, arg2);
+
+			// if the listener return true, then we should remove it
+			if (response === true) {
+				this.off(event, listeners[i]);
+			}
+
+		}
+
+		return this;
+
+	 }
+
+	 /**
+	  *  Trigger an event with parameters passed as an array
+	  *
+	  *  @method
+	  *  @memberof Eclair.EventEmitter
+	  *  @instance
+	  *  @param {String} event Name of the event to be triggered
+	  *  @param {Array} args Arguments array to pass to the listeners
+	  *  @example // Emit an array of arguments, which the listeners will receive as seperate arguments
+	  *  emitter.emitArray("someOtherEvent", [arg1, arg2, arg3, arg4]);
+	  */
+	 emitterProto.emitArray = function (event, args) {
+
+			args.unshift(event)
+			this.emit.apply(this, args)
+
+			return this;
+
+	 }
+
+	// Add aliases
+	_.extend(emitterProto, {
+
+		addEventListener: emitterProto.on,
+		removeEventListener: emitterProto.off
+
+	});
+
+	// Add an EventEmitter instance to Eclair
+	_.extend(Eclair, new EventEmitter);
+
+})(Eclair, _);
+/**
+ * Promise core component
+ *
+ */
+(function (Eclair, _) {
+
+	/**
+	 *  &lt;p> Promise &lt;/p>
+	 *  &lt;p> Simple utility for asynchronous operations on top of Eclair.EventEmitter &lt;/p>
+	 *
+	 *  @constructor
+	 *  @memberof Eclair
+	 *  @augments Eclair.EventEmitter
+	 *
+	 */
+	var Promise = Eclair.Module('Promise', {
+
+			inherit: Eclair.EventEmitter,
+			initializer: function () {
+				this.pending = true;
+			}
+
+		}),
+		promiseProto = Promise.prototype;
+
+	/**
+	 *  Resolve the promise
+	 *
+	 *  @method
+	 *  @memberof Eclair.Promise
+	 *  @name done
+	 *  @instance
+	 *  @param {Object|Boolean} error
+	 *  @param {*} result
+	 */	
+	promiseProto.done = function (error, result) {
+
+		if (this.pending) {
+
+			this.pending = false;
+			this.error = error;
+			this.result = result;
+
+			this.emit('done', error, result);
+
+			if (error) {
+			   	this.emit('error', error);
+			} else {
+			   	this.emit('success', result);
+			} 
+
+		}
+
+		return this;
+
+	}
+
+   /**
+	*  Add a callback to the promise
+	*
+	*  @method
+	*  @memberof Eclair.Promise
+	*  @name then
+	*  @instance
+	*  @param {Function} callback
+	*/	
+	promiseProto.then = function (callback) {
+
+		if (this.pending) {
+
+		   this.on('done', callback);
+
+		} else {
+
+			callback.call(this, this.error, this.result);
+
+		}
+
+		return this;
+
+	}
+
+	promiseProto.dismiss = function (callback) {
+
+		this.off('done', callback);
+		return this;
+
+	}
+
+})(Eclair, _);
+/**
+ *  Eclair.Config
+ *
+ */
+
+(function(Eclair, _) {
+
+	/**
+	 * &lt;p> Config Core Class &lt;/p>
+	 * &lt;p> Dictionnary-like class to store settings, change them,
+	 * restore the defaults etc. &lt;/p>
+	 * &lt;p>This is the API of the Eclair.settings object&lt;/p>
+	 *
+	 * @constructor
+	 * @memberof Eclair
+	 *
+	 */
+	 var Config = Eclair.Module('Config', {
+		 initializer: function (object) {
+
+			 var defaults = {},
+				 frozen = false;
+
+			 /**
+			  *  Meant to be used to froze the configuration,
+			  *  it means that previously stored values are now
+			  *  default values and can be retrieved via the defaults method
+			  *
+			  *  @memberof Eclair.Config
+			  *  @name freeze
+			  *  @method
+			  *  @instance
+			  */    
+			 this.freeze = function () {
+				 frozen = true;
+			 }
+
+			 /**
+			  *  Retrieve a default value
+			  *
+			  *  @memberof Eclair.Config
+			  *  @name defaults
+			  *  @method
+			  *  @instance
+			  *
+			  *  @param {String} set Key of the default value to retrieve
+			  */
+			 this.defaults = function (set) {
+
+				 return defaults[set];
+
+			 }
+
+			 /**
+			  *  &lt;p> Used to set some settings, a key value object can be used,
+			  *  or two strings as arguments if we need to define only one setting &lt;/p>
+			  *
+			  *  @memberof Eclair.Config
+			  *  @name define
+			  *  @method
+			  *  @instance
+			  *
+			  *  @param {Object|String} set Object or key
+			  *  @param {*} [value] value to set when the method is used inline
+			  *
+			  *  @example var conf = new Jin.Config;
+			  *  conf.define({
+			  *     key: 'value'
+			  *  );
+			  *
+			  *  // Or inline style
+			  *  conf.define('key', 'value');
+			  */
+			 this.define = function (arg1, arg2) {
+
+				 if (frozen || arguments.length > 2 || !arguments.length ) {
+
+					 return;
+
+				 } else if (arguments.length === 2) {
+
+					 defaults[arg1] = arg2;
+					 this[arg1] = arg2;
+
+				 } else {
+
+					 _.extend(defaults, arg1);
+					 _.extend(this, arg1);
+
+				 }
+
+			 }
+
+			 if (!_.isUndefined(object)) {
+				 this.define(object);
+			 }
+
+		 }
+	 });
+
+	 // Define Eclair settings object
+	 Eclair.settings = new Eclair.Config;
+
+
+})(Eclair, _);
+/**
+ *
+ *	Eclair.require()
+ *
+ */
+
+ (function (Eclair, _) {
+
+	/**
+	 *  Eclair.require settings
+	 *
+	 *  @name Eclair.settings
+	 *  @property {String} [settings.modulePath=/eclair-modules/] - Eclair.js modules path
+	 *  @property {Boolean} [settings.cacheJavascript=true] - cache Eclair.require() requested ressources into the localStorage
+	 */
+	Eclair.settings.define({
+		
+		modulePath: "/eclair-modules/",
+		cacheJavascript: true
+		
+	});
+
+	var location = Eclair.global.location,
+	 	settings = Eclair.settings;
+
+	 // Require log	
+	Eclair._RL = [];
+
+	/**
+	 *  &lt;p> Load a remote or relative javascript file, or a Eclair Module. &lt;/p>
+	 *  &lt;p> There is specific settings related to Eclair.require and its behaviour &lt;/p>
+	 *
+	 *  @param {String} module Eclair module name or url of the a script
+	 *  @param {Function} callback function
+	 *  @param {Function} onerror function called on error
+	 *
+	 *  @todo error handling for loading a js file or Eclair Module,
+	 *  since the caching system, non-existent scripts are loaded
+	 */
+	Eclair.require = function (module, callback, onerror, opts) {
+		
+		opts = opts || {};
+		opts.async = opts.async || true;
+
+		if (typeof module == "object") {
+			return massRequire(module, callback, onerror, opts);
+		}
+
+		if (module.indexOf('.js') >= 1 || opts.force) {
+
+			return addScriptFromUrl(module, callback, onerror, opts);
+
+		} else if (Eclair.isLoaded(module)) {
+
+			var promise = new Eclair.Promise;
+
+			return promise.done(null,null);
+
+		} else {
+
+			return Eclair.require(settings.modulePath + module + '.js', callback, onerror, opts);
+
+		}
+
+	}
+
+	/**
+	 *  Load some dependencies list,
+	 *  see Eclair.Module documentation for more details
+	 *
+	 *  @method
+	 *  @memberof Eclair
+	 *  @param {Object} options Module collection to be loaded
+	 *
+	 *  @todo implement fallback method on the whole dependencies stack
+	 */
+	Eclair.load = function (options) {
+
+		var loader = Eclair.require(options.dependencies);
+		
+		if (options.onload) {
+		
+			loader.then(options.onload);
+		
+		}
+
+	}
+
+	/**
+	 *  Load many javascript files
+	 *  called internally by Eclair.require
+	 *
+	 *  @param {Array} modules
+	 *  @param {Function} callback
+	 *  @param {Function} onerror
+	 *  @param {Boolean} force
+	 */
+	var massRequire = function (modules, callback, onerror, opts) {
+
+		var modulesTotal,
+			modulesCount = modulesTotal = modules.length,
+			modulesLoaded = 0,
+			promise = new Eclair.Promise;
+
+		var resolver = function (complete) {
+
+			if (complete) {
+			
+				var err = null;
+			
+				if (modulesCount !== modulesTotal) {
+			
+					err = {};
+					err.missing = modulesTotal - modulesCount;
+			
+				}
+			
+				promise.done(err, null);
+			
+			}
+
+		}
+
+		var _onLoad = function () {
+
+			modulesLoaded++;
+			
+			var operationOver = modulesCount - modulesLoaded === 0 ? true : false;
+			
+			if (callback) {
+				callback(operationOver, modulesLoaded, modulesCount)
+			}
+			
+			resolver(operationOver);
+
+		}
+
+		var _onError = function () {
+
+			modulesCount--;
+			
+			var operationOver = modulesCount - modulesLoaded === 0 ? true : false;
+			
+			if (onerror) {
+				onerror(operationOver, modulesLoaded, modulesCount)
+			}
+			
+			resolver(operationOver);
+
+		}
+
+		_.each(modules, function (module) {
+
+			Eclair.require(module, _onLoad, _onError, opts);
+
+		});
+
+		return promise;
+
+	 }
+
+	/**
+	 *  Add a script to the page
+	 *
+	 *  @param {String} scriptUrl
+	 *  @param {Function} callback
+	 *  @param {Function} onerror
+	 */
+	var addScriptFromUrl = function (scriptUrl, callback, onerror, opts) {
+
+		var XHR = Eclair.XHR,
+			log = Eclair._RL,
+			LocalStorage = Eclair.LocalStorage,
+			promise = new Eclair.Promise;
+
+		// Check if the url is absolute
+		if (!~scriptUrl.indexOf('http://') 
+			&& !~scriptUrl.indexOf('https://')
+			&& scriptUrl.substring(0,2) != '//') {
+		
+			// If it isn't we append the baseUrl
+			// to ensure the identifier is correct in the localStorage
+			scriptUrl = Eclair.Browser.getBaseUrl() + scriptUrl;
+		
+		}
+
+		promise.on('success', callback);
+		promise.on('error', onerror);
+
+		// Can we use XHR to retrieve this script ?	
+		if (settings.cacheJavascript 
+			&& (XHR.canLoadURL(scriptUrl) || settings.xhrProxy)) {
+		
+			var cachedScript = LocalStorage.get(scriptUrl);
+		
+			if (cachedScript && LocalStorage.isValidStoreObject(cachedScript)) {
+		
+				log.push({res:scriptUrl, status:'local'});
+		
+				addInlineScript(cachedScript);
+		
+				// Success
+				promise.done(null, null);
+		
+			} else {
+		
+				var scriptLoad = function (response) {
+		
+					log.push({res:scriptUrl, status:'net'});
+		
+					cachedScript = new LocalStorage.LocalStoreObject(response);
+					LocalStorage.add(scriptUrl, cachedScript);
+					addInlineScript(cachedScript);
+		
+					// Success
+					promise.done(null, null);
+		
+				}
+		
+				var scriptError = function (status) {
+		
+					var e = {res:scriptUrl, status:status};
+		
+					log.push(e);
+		
+					// Error
+					promise.done(e, null);
+		
+				}
+		
+				// Use the "proxy" if available
+				Eclair.ajax({
+					url: scriptUrl,
+					success: scriptLoad,
+					error: scriptError,
+					proxy: true,
+					async: opts.async,
+					timeout: opts.timeout
+				});
+		
+			}
+		
+		} else {
+		
+			var script = Eclair.document.createElement('script');
+			script.type = "text/javascript";
+			script.charset = "utf-8";
+		
+			if (opts.async) {
+				script.async = true;
+			}
+		
+			script.src = scriptUrl;
+		
+			script.addEventListener('load', function (e) {
+		
+				// Success
+				promise.done(null, null);
+		
+			}, false);
+		
+			script.addEventListener('error', function (e) {
+		
+				// Error
+				promise.done(e, null)
+		
+			})
+		
+			if (Eclair.document.body) {
+				Eclair.document.body.appendChild(script);
+			} else {
+				Eclair.head.appendChild(script);	
+			}
+		
+		}
+
+		return promise;
+
+	 }
+
+	/**
+	 *  Add a inline script from a LocalStoreObject
+	 *
+	 *  @param {Object} script
+	 *  @param {Object} cachedScript LocalStore Object instance
+	 */
+	 var addInlineScript = function (cachedScript) {
+
+		 var script = Eclair.document.createElement('script');
+		 script.text = cachedScript.data;
+		
+		 Eclair.head.appendChild(script);
+
+	 }
+
+ })(Eclair, _);
+/**
+ *
+ *  LocalStorage.js
+ *
+ */
+
+(function (Eclair, _) {
+
+	/**
+	 *  LocalStorage Component settings
+	 *
+	 *  @name Eclair.settings
+	 *  @property {String} [settings.cachePrefix] - Cache prefix to be used with localStorage (Eclair- by default)
+	 *  @see Eclair.LocalStorage
+	 *
+	 */
+	Eclair.settings.define({
+		// localStorage prefix
+		cachePrefix: 'Eclair-',
+		// localStorage default expire
+		cacheExpire: 5000,
+		slotPrefix: 'slot-'
+	});
+
+	/**
+	 *  &lt;p> LocalStorage Component &lt;/p>
+	 *  &lt;p> Abstract the localStorage, this is used by Eclair to cache scripts &lt;/p>
+	 *  &lt;p> See LocalStorage.Slot for a quick and useful persistence tool &lt;/p>
+	 *
+	 *  @constructor
+	 *  @memberof Eclair
+	 */
+	var LocalStorage = Eclair.Module("LocalStorage"),
+		settings = Eclair.settings;
+
+	/**
+	 *  Return true if the localStorage is available 
+	 *  and enabled, false otherwise
+	 *
+	 *  @type {Boolean}
+	 *  @memberof Eclair.LocalStorage
+	 */	 
+	LocalStorage.enabled = (function () {
+
+		var TEST = 'Eclair-localstorage';
+		
+		try {
+		
+			var localStorage = Eclair.global.localStorage;
+			localStorage.setItem(TEST, TEST);
+			localStorage.removeItem(TEST);
+			return true;
+		
+		} catch (e) {
+		
+			return false;
+		
+		}
+
+	})();
+
+	 // Use the localStorage if available or a in memory simulated alternative
+	var localStorage = LocalStorage.enabled ? Eclair.global.localStorage : {
+	
+		_data: {},
+		
+		setItem: function (key, value) {
+		
+			return this._data[key] = String(value);
+		
+		},
+		
+		getItem: function (key) {
+		
+			return this._data.hasOwnProperty(key) ? this._data[key] : undefined;
+		
+		},
+		
+		removeItem: function (key) {
+		
+			return delete this._data[key];
+		
+		},
+		
+		clear: function () {
+		
+			return this._data = {};
+		
+		}
+	
+	}
+
+	/**
+	 *  &lt;p> LocalStoreObject constructor &lt;/p>
+	 *  &lt;p> A simple wrapper to set expirations to stored objects&lt;/p>
+	 *  &lt;p> The isValidStoreObject method can be used to test whether
+	 *  an LocalStoreObject instance is still valid or is expired&lt;/p>
+	 *
+	 *  @constructor
+	 *  @memberof Eclair
+	 *  @param {Object} data
+	 *  @param {Number} expire in hours
+	 *
+	 *  @see Eclair.LocalStorage
+	 */
+	LocalStorage.LocalStoreObject = function (data, expire) {
+
+		var now = +new Date;
+
+		expire = expire ? expire : settings.cacheExpire;
+
+		/**
+		 *  Data stored
+		 *  @instance
+		 *  @type {Object}
+		 */
+		this.data = data;
+
+		/**
+		 *  Creation date
+		 *  @instance
+		 *  @type {Number}
+		 */
+		this.stamp = now;
+
+		/**
+		 *  When do this store object expire
+		 *  @instance
+		 *  @type {Number}
+		 */
+		this.expire = now + expire * 60 * 60 * 1000;
+
+	 }
+
+	 /**
+	  *  &lt;p> Slot constructor &lt;/p>
+	  *  &lt;p> Slot is a useful localStorage abstraction within one class &lt;/p>
+	  *  &lt;p> Operate beyond a LocalStoreObject instance &lt;/p>
+	  *
+	  *  @constructor
+	  *  @memberof Eclair
+	  *  @param {String} name Name of the slot, this is also its &lt;strong>identifier&lt;/strong>
+	  *  @param {Object} [data={}] A data object to be stored
+	  *  @param {Number} [expire=settings.cacheExpire] in seconds
+	  *
+	  *  @see Eclair.LocalStorage
+	  *
+	  *  @example var Slot = Eclair.LocalStorage.Slot // create a local reference to Slot
+	  *
+	  *  var mySlot = new Slot("mySlot")
+	  *  // Then attach some data to this slot
+	  *  mySlot.data.record = "Hello"
+	  *  // And store it
+	  *  mySlot.store()
+	  *
+	  *  // You can also directly create the slot and store the data :
+	  *  var mySlot = new Slot("mySlot", {record: "Hello"});
+	  */
+	 LocalStorage.Slot = function (name, data, expire) {
+
+		if (_.isUndefined(name) || !(this instanceof LocalStorage.Slot))
+			return false;
+
+		/**
+		 *  Name of the slot
+		 *  @instance
+		 *  @type {String}
+		 */
+		this.name = name;
+		
+		/**
+		 *  Data object attached to the slot
+		 *  @instance
+		 *  @type {Object}
+		 */
+		this.data = data || {};
+		
+		/**
+		 *  Is the slot currently stored in the localStorage ?
+		 *  @instance
+		 *  @type {Boolean}
+		 */
+		this.stored = false;
+		
+		/**
+		 *  When does the storage expire (in seconds)
+		 *  @instance
+		 *  @type {Number}
+		 */
+		this.expire = expire ? expire : settings.cacheExpire;
+		
+		/**
+		 *  Store the object in its current state
+		 *  
+		 *  @method
+		 *  @instance
+		 */
+		this.store = function () {
+			
+			this.storeObject = new LocalStorage.LocalStoreObject(this.data, this.expire);
+			LocalStorage.add(settings.slotPrefix + this.name, this.storeObject);
+	
+			this.stored = true;
+			
+		}
+		
+		/**
+		 *  Restore the data stored in localStorage
+		 *  from the name of the Slot as identifier
+		 *
+		 *  @method
+		 *  @instance
+		 */
+		this.restore = function () {
+			
+			var storeObject = LocalStorage.get(settings.slotPrefix + this.name);
+			
+			if (storeObject) {
+				
+				this.storeObject = storeObject;
+				this.data = storeObject.data;
+				this.expire = storeObject.expire;
+				
+				this.stored = true;
+				
+				return true;
+			 
+			} else {
+				
+			 return false;
+			 
+			}
+		}
+		
+		/**
+		 *  Remove the slot data if it is stored
+		 *
+		 *  @method
+		 *  @instance
+		 */
+		this.remove = function () {
+			
+			if (this.stored) {
+					
+				var removed = LocalStorage.remove(settings.slotPrefix + this.name);
+				
+				if (removed)
+				this.stored = false;
+				
+				return removed;
+			
+			} else {
+				
+				return false;
+			
+			}
+			
+		}
+		
+		if (data) {
+			
+			this.store();
+		
+		}
+
+	 }
+
+	 /**
+	  *  Is this LocalStoreObject instance still valid
+	  *
+	  *  @method
+	  *  @memberof Eclair.LocalStorage
+	  *  @param {Object} lso Local Store Object instance
+	  *
+	  *  @see Eclair.LocalStorage.LocalStoreObject
+	  */
+	 LocalStorage.isValidStoreObject = function (lso) {
+
+		return (lso.expire - +new Date() > 0);
+
+	 }
+
+	/**
+	 *  Add to local storage method
+	 *
+	 *  @method
+	 *  @memberof Eclair.LocalStorage
+	 *  @param {String} key The key
+	 *  @param {Object} object An object to store
+	 */	
+	LocalStorage.add = function (key, object) {
+
+		try {
+
+			localStorage.setItem(settings.cachePrefix + key, JSON.stringify(object));
+			return true;
+
+		} catch (e) {
+
+			if ( e.name.toUpperCase().indexOf('QUOTA') >= 0 ) {
+			
+				var item,
+					tempScripts = [];
+			
+				for (item in localStorage) {
+					
+					if (item.indexOf(settings.cachePrefix) === 0) {
+						tempScripts.push(JSON.parse(localStorage[item]));
+					}
+					
+				}
+			
+				if (tempScripts.length) {
+			
+					tempScripts.sort(function (a, b) {
+						return a.stamp - b.stamp;
+					});
+			
+					LocalStorage.remove(tempScripts[0].key);
+			
+					return LocalStorage.add(key, object);
+			
+				}
+			
+			}
+
+		}
+
+	}
+
+	/**
+	 *  Remove from local storage method
+	 *
+	 *  @method
+	 *  @memberof Eclair.LocalStorage
+	 *  @param {String} key
+	 */	
+	LocalStorage.remove = function (key) {
+
+		localStorage.removeItem(settings.cachePrefix + key);
+		return true;
+
+	}
+
+	/**
+	 *  Retrieve data from the local storage
+	 *
+	 *  @method
+	 *  @memberof Eclair.LocalStorage
+	 *  @param {String} key
+	 */
+	LocalStorage.get = function (key) {
+
+		var item = localStorage.getItem(settings.cachePrefix + key);
+
+		try {
+			return JSON.parse(item || 'false');
+		} catch (e) {
+			return false;
+		}
+
+	}
+
+	// Clean localstorage on new version
+	Eclair.on('init', function () {
+	
+		var storredVersion = LocalStorage.get('version');
+		
+		if (storredVersion) {
+		
+			if (storredVersion !== Eclair.VERSION && localStorage.clear) {
+			
+				localStorage.clear();
+				LocalStorage.add('version', Eclair.VERSION);
+			
+			}
+		
+		} else {
+		
+			LocalStorage.add('version', Eclair.VERSION);
+		
+		}
+	
+	});
+
+})(Eclair, _);
+/**
+ * XHR.js
+ *
+ */
+
+(function (Eclair, _) {
+
+	var settings = Eclair.settings;
+
+	/**
+	 *  XHR Component settings
+	 *
+	 *  @name Eclair.settings
+	 *  @property {String} [settings.xhrProxy] - XHR Proxy, mandatory if CORS isn't enabled on the remote server
+	 */
+	settings.define({ 
+		xhrProxy: "",  
+	});
+
+	/**
+	 *  &lt;p> XHR Component&lt;/p>
+	 *  &lt;p> This compenent is a simple wrapper around XMLHttpRequest, it provides utility methods to
+	 *  perform &lt;strong>synchronous or asynchronous requests&lt;/strong>. &lt;/p>
+	 *
+	 *  @constructor
+	 *  @memberof Eclair
+	 *  
+	 */
+	var XHR = Eclair.Module('XHR', {
+
+		inherit: Eclair.Promise,
+		initializer: function (options) {
+
+			if (!(this instanceof XHR)) {
+				return;
+			}
+
+			if (!options) {
+				options = {};
+			}
+
+			/**
+			 *  HTTP method to use
+			 *
+			 *  @memberof Eclair.XHR
+			 *  @name method
+			 *  @instance
+			 *  @type {String}
+			 */
+			this.method = options.method || 'GET';
+
+			/**
+			 *  &lt;p>Can be set to change the response type.&lt;/p>
+			 *  &lt;p>Should not be used with synchronous requests.
+			 *  But support is provided on synchronous requests
+			 *  for "document" responseType&lt;/p>
+			 *  &lt;p>Ex: "document", "json", "blob", "arraybuffer"&lt;/p>
+			 *
+			 *  @memberof Eclair.XHR
+			 *  @name responseType
+			 *  @instance
+			 *  @type {String}
+			 */
+			this.responseType = options.responseType || '';
+
+			/**
+			 *  URL of the ressource to request
+			 *
+			 *  @memberof Eclair.XHR
+			 *  @name url
+			 *  @instance
+			 *  @type {String}
+			 */
+			this.url = options.url || null;
+
+			/**
+			 *  Query parameters
+			 *
+			 *  @memberof Eclair.XHR
+			 *  @name data
+			 *  @instance
+			 *  @type {Object}
+			 */
+			this.data = options.data || {};
+
+			/**
+			 *  Additional headers to send
+			 *
+			 *  @memberof Eclair.XHR
+			 *  @name headers
+			 *  @instance
+			 *  @type {Object}
+			 */
+			this.headers = options.headers || {};
+
+			/**
+			 *  When the set to true, the request is aborted
+			 *  when the headers has been received.
+			 *
+			 *  @memberof Eclair.XHR
+			 *  @name headersOnly
+			 *  @instance
+			 *  @type {Boolean}
+			 */
+			this.headersOnly = options.headersOnly || false;
+
+			/**
+			 *  When the set to false, the request will be
+			 *  performed synchronously. (Careful, this lock the
+			 *  whole page on Safari).
+			 *
+			 *  @memberof Eclair.XHR
+			 *  @name async
+			 *  @instance
+			 *  @type {Boolean}
+			 */
+			this.async = _.isUndefined(options.async) ? true : options.async;
+
+			/**
+			 *  Set a timeout for request
+			 *
+			 *  @memberof Eclair.XHR
+			 *  @name timeout
+			 *  @instance
+			 *  @type {Boolean|Number}
+			 */
+			this.timeout = options.timeout || false;
+
+			/**
+			 *  Response (defaults to null)
+			 *  The response entity body according to responseType, as an ArrayBuffer,
+			 *  Blob, Document, JavaScript object (for "json"), or string.
+			 *  This is null if the request is not complete or was not successful.
+			 *
+			 *  @memberof Eclair.XHR
+			 *  @name response
+			 *  @instance
+			 *  @type {Object|String|XMLDocument|HTMLDocument}
+			 */
+			this.response = null;
+
+			/**
+			 *  Response text (defaults to null)
+			 *
+			 *  @memberof Eclair.XHR
+			 *  @name responseText
+			 *  @instance
+			 *  @type {String}
+			 */
+			this.responseText = null;
+
+			// purposely undocumented
+			this.payload = XHR.encodeURI(this.data);
+
+			if (this.method === 'GET' && this.payload) {
+
+				this.url += '?' + this.payload;
+				this.payload = null;
+
+			}
+
+		}
+
+	});
+
+	var xhrProto = XHR.prototype;
+
+	/**
+	 *  &lt;p> Convert a javascript object to a URI string &lt;/p>
+	 *  &lt;p> eg: {name:'Avo',age:6} becomes the string: &name=avo&age=6 &lt;/p>
+	 *
+	 *  @method
+	 *  @memberof Eclair.XHR
+	 *  @param {Object} data Data object to encode
+	 *  @returns {String}
+	 */
+	XHR.encodeURI = function (data) {
+
+		var result = "";
+
+		if (_.isString(data)) {
+
+			result = data;
+
+		} else {
+
+			var e = encodeURIComponent;
+
+			for (var k in data) {
+
+				if (data.hasOwnProperty(k)) {
+					result += (!result ? '' : '&') + e(k) + '=' + e(data[k]);
+				}
+
+			}
+
+		}
+
+		return result;
+
+	}
+
+	/**
+	 *  Return true if XHR can load this url without encountering
+	 *  cross origin request security issues
+	 *
+	 *  @param {String} url The url
+	 */
+	XHR.canLoadURL = function (url) {
+
+		if (url.indexOf(location.origin) === 0
+			|| location.protocol === 'applewebdata:'
+		) {
+
+			return true;
+
+		}
+
+		return false;
+
+	}
+
+	/**
+	 *  Track method, abort the HTTP request when the
+	 *  headers has been received (it means that it don't
+	 *  waste time retrieving unused additional data)
+	 *
+	 *  @method
+	 *  @memberof Eclair.XHR
+	 *  @param {String} url Url to "touch"
+	 *
+	 *  @todo use a Image.src loader with cross origin request
+	 */
+	XHR.track = function (url, callback) {
+
+		return this.get(url, callback, {
+
+			headersOnly: true
+
+		})
+
+	}
+
+	/**
+	 *  Factory method to create Eclair.XHR requests
+	 *
+	 *  @method
+	 *  @memberof Eclair.XHR
+	 *  @param {Object} options Options to instantiate Eclair.XHR
+	 *  @param {Function} callback Callback to be triggered when the request is over.
+	 */
+	XHR.createRequest = function (options, callback) {
+
+		return (new XHR(options)).then(callback).send();
+
+	}
+
+	// HTTP verbs methods START
+
+	/**
+	 *  Perform a HTTP GET request
+	 *
+	 *  @method
+	 *  @memberof Eclair.XHR
+	 *  @name get
+	 *  @param {String} url Request url
+	 *  @param {Function} callback Callback to be triggered when the request is over.
+	 *  @param {Object} [options] Options to instantiate Eclair.XHR
+	 */
+	/**
+	 *  Perform a HTTP POST request
+	 *
+	 *  @method
+	 *  @memberof Eclair.XHR
+	 *  @name post
+	 *  @param {String} url Request url
+	 *  @param {Function} callback Callback to be triggered when the request is over.
+	 *  @param {Object} [options] Options to instantiate Eclair.XHR
+	 */
+	/**
+	 *  Perform a HTTP PUT request
+	 *
+	 *  @method
+	 *  @memberof Eclair.XHR
+	 *  @name put
+	 *  @param {String} url Request url
+	 *  @param {Function} callback Callback to be triggered when the request is over.
+	 *  @param {Object} [options] Options to instantiate Eclair.XHR
+	 */
+	/**
+	 *  Perform a HTTP DELETE request
+	 *
+	 *  @method
+	 *  @memberof Eclair.XHR
+	 *  @name delete
+	 *  @param {String} url Request url
+	 *  @param {Function} callback Callback to be triggered when the request is over.
+	 *  @param {Object} [options] Options to instantiate Eclair.XHR
+	 */
+
+	var methods = [
+		'get',
+		'post',
+		'put',
+		'delete'
+	];
+
+	_.each(methods, function (method) {
+
+		XHR[method] = function (url, callback, options) {
+
+			options = options || {};
+			options.url = url;
+			options.method = method.toUpperCase();
+
+			return this.createRequest(options, callback);
+
+		}
+
+	})
+	// HTTP verbs methods STOP
+
+	// public but undocumented
+	xhrProto.xhr = function () {
+
+		if (!this._xhr) {
+
+			try {
+
+				this._xhr = new XMLHttpRequest;
+
+			} catch (e) {
+
+				this.done(e, null);
+				return null;
+
+			}
+
+		}
+
+		return this._xhr;
+
+	}
+
+	/**
+	 *  Send the request
+	 *
+	 *  @method
+	 *  @memberof Eclair.XHR
+	 *  @name send
+	 *  @instance
+	 */
+	xhrProto.send = function () {
+
+		var xhr = this.xhr(),
+			self = this;
+
+		xhr.open(this.method, this.url, this.async);
+
+
+		// A specific responseType has been specified
+		if (this.responseType && this.async) {
+
+			xhr.responseType = this.responseType;
+
+		}
+
+		xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+
+		_.each(this.headers, function (content, name) {
+
+			xhr.setRequestHeader(name, content);
+
+		});
+
+		if (this.timeout) {
+
+			function onTimeout () {
+
+				self.abort();
+				self.done({timeout: true}, null);
+
+			}
+
+			var timer = setTimeout(onTimeout, this.timeout);
+
+		}
+
+		xhr.onreadystatechange = function () {
+
+			if (self.timeout) {
+
+				clearTimeout(timer);
+
+			}
+
+			if (self.headersOnly && xhr.readyState >= 2) {
+
+				self.abort();
+				self.done(null, xhr.responseText);
+				self.response = xhr.response;
+				self.responseText = xhr.responseText;
+				return;
+
+			}
+
+			if (xhr.readyState === 4) {
+
+				// Fill response member and:
+				// enable document responseType on synchronous requests
+				self.response = !self.async && self.responseType === 'document' ? 
+								(new DOMParser).parseFromString(xhr.responseText, "text/html") : (xhr.response || xhr.responseText);
+
+				if (!self.responseType) {
+
+					self.responseText = xhr.responseText;
+
+				} else if (self.responseType === 'json' && _.isString(self.response)) {
+
+					// Enable json responseType on synchronous requests
+					self.response = JSON.parse(self.response);
+
+				}
+
+				if ( (xhr.status >= 200 && xhr.status &lt; 300) 
+					 || xhr.status == 304 
+					 || (xhr.status === 0 && xhr.protocol && -1 != xhr.protocol.indexOf('http')) 
+				   ) 
+				{
+
+					self.done(null, self.response);	
+
+				} else {
+
+					self.done(xhr.status, self.response);
+
+				}
+
+			}
+
+		}
+
+		xhr.send(this.payload);
+
+		return this;
+
+	}
+
+	/**
+	 *  Abort the request
+	 *
+	 *  @method
+	 *  @memberof Eclair.XHR
+	 *  @name abort
+	 *  @instance
+	 */
+	xhrProto.abort = function () {
+
+		return this;
+
+	}
+
+	/**
+	 *  jQuery-like ajax method
+	 *
+	 *  @param {Object} options Request options
+	 *  @param {String} [options.type=GET] HTTP method to be used. Ex: "GET"
+	 *  @param {String} options.url request url
+	 *  @param {Boolean} [options.async=true] Should the be synchronous or asynchronous ?
+	 *  @param {Function} [options.success=false] A success callback, it receives the response text as its first argument, the second is the XMLHttpRequest instance used
+	 *  @param {Function} [options.error=false] A error callback, it receives the status text as its first argument, then the XMLHttpRequest
+	 *  @param {String} [options.proxy] A intermediate "proxy" to be used, this string is simply prepended to the request url.
+	 *  @param {Number} [options.timestamp=false] Should a timestamp be appended to the request url to prevent caching ?
+	 *
+	 *  @example Eclair.ajax({
+	 *  	type: 'GET',
+	 *  	url: 'http://foo.com/bar',
+	 *  	success: function (response) {
+	 *  		console.log('The response is ', response)
+	 *  	},
+	 *  	error: function (status) {
+	 *  		console.log('Error: ', status)
+	 *  	}
+	 *  });
+	 */
+	Eclair.ajax = function (options) {
+
+		if (!options) return;
+
+		if (options.timestamp) {
+
+			var ts = +new Date;
+
+			if (!options.data) {
+				options.data = {};
+			}
+
+			options.data.ts = ts;
+		}
+
+		var req = new XHR(options);
+
+		if (options.proxy) {
+
+			var proxy = _.isBoolean(options.proxy) ? settings.xhrProxy : options.proxy;
+
+			req.url = proxy + req.url;
+
+		}
+
+		if (options.success) {
+
+			req.on('success', options.success);
+
+		}
+
+		if (options.error) {
+
+			req.on('error', options.error);
+
+		}
+
+		req.send();
+
+		return req;
+
+	}
+
+})(Eclair, _);
+/**
+ *  Browser.js
+ *
+ */
+
+(function (Eclair, _) {
+
+	var settings = Eclair.settings,
+		w = Eclair.global,
+		userAgent = w.navigator.userAgent;
+
+	/**
+	 *  &lt;p> Browser Component &lt;/p>
+	 *  &lt;p> Provide a set of utility to manage the browser &lt;/p>
+	 *  &lt;p> Browser.name provide an identifier for the current platform such as 'ios', 'android',
+	 *  or 'webkit' &lt;/p>
+	 *  &lt;h4> Detect iOS or Android: &lt;/h4>
+	 *  &lt;p> The Browser component has theses members: Browser.ios, Browser.android
+	 *  Browser.webkit which allow us to determine which browser we're running on.
+	 *  These parameters will be false if the browser don't match or will provide an object
+	 *  that contains the name, version, fullName and fullVersion of the browser. &lt;/p>
+	 *
+	 *  @class
+	 *  @memberof Eclair
+	 *  @todo Provide support for other mobile platforms in the future, only iOS and Android are supported right now
+	 *
+	 *  @example var browser = Eclair.Browser;
+	 *  // This condition will match iOS5+:
+	 *  if (browser.ios && browser.ios.version >= 5) {
+	 *      console.log('We are on iOS5+');
+	 *  } else {
+	 *      console.log('This an outdated iOS version');
+	 *  }
+	 *
+	 *  // Something similar for Android :
+	 *  if (browser.android && browser.android.fullVersion &lt; 2.3) {
+	 *      console.log('Very old phone!');
+	 *  }
+	 *
+	 */
+	var Browser = Eclair.Module('Browser', {
+		initializer: {}
+	});
+
+	function Navigator (members) {
+
+		_.extend(this, members);
+
+	}
+
+	/**
+	 *  &lt;p> Provide an identifier for the browser,
+	 *  &lt;strong> can return 'ios', 'android', 'webkit' or false. &lt;/strong> &lt;/p>
+	 *  &lt;p> Webkit is only returned when ios nor android has been detected. &lt;/p>
+	 *
+	 *  @memberof Eclair.Browser
+	 *  @type {String} 
+	 */
+	Browser.name = null;
+
+	/**
+	 *  Contain a full browser name extracted from the userAgent
+	 *
+	 *  @memberof Eclair.Browser
+	 *  @type {String}
+	 */
+	Browser.fullName = null;
+
+	/**
+	 *  &lt;p> Return a version number parsed from the userAgent &lt;/p>
+	 *  &lt;p> Will return 4 for iOS 4, 6 for iOS 6, 2 and 4 for Android
+	 *  2 & 4 etc. &lt;/p>
+	 *
+	 *  @memberof Eclair.Browser
+	 *  @type {String}
+	 */
+	Browser.version = null;
+
+	/**
+	 *  &lt;p> Return a long version number parsed from the userAgent &lt;/p>
+	 *
+	 *  @memberof Eclair.Browser
+	 *  @type {String}
+	 */
+	Browser.fullVersion = null;
+
+	/**
+	 *  Accept a list (Array) or a single regex or string,
+	 *  and use String.prototype.match to test the userAgent
+	 *  of the WebView/Browser
+	 *
+	 *  @memberof Eclair.Browser
+	 *  @param {RegExp|String|Array} regex Regex or array of regex, or string to use
+	 *
+	 *  @returns {Array|null}
+	 *
+	 */
+	Browser.match = function (regex) {
+
+		var result;
+
+		if (_.isArray(regex)) {
+
+			for (var i = 0; i &lt; regex.length; i++) {
+
+				result = userAgent.match(regex[i])
+
+				if (result) {
+					return result;
+				}
+
+			}
+
+			return result;
+
+		} else {
+
+			return userAgent.match(regex);
+
+		}
+
+	}
+
+	/**
+	 *  &lt;p> Register a new browser check and apply it immediately on the Browser object &lt;/p>
+	 *  &lt;p> Careful, if there is a match, the information at Browser.name, Browser.version etc
+	 *  will be overriden. &lt;/p>
+	 *
+	 *  @memberof Eclair.Browser
+	 *  @param {String} name This identifier will be used to create the test and registed at Eclair.Browser[name]
+	 *  @param {RegExp|String|Array} regex Regex or array of regex, or string to perform the test
+	 *  @param {Number} [versionIndex=1]
+	 *  @param {Function} [versionMatcher=false]
+	 *
+	 *  @example var browser = Eclair.Browser;
+	 *  // The Android check is added like in Eclair :
+	 *  browser.register('android', /Android (\d+)\.(\d+)(?:[.\-]([a-z0-9]+))?/);
+	 */
+	Browser.register = function (name) {
+
+		var navigator;
+
+		navigator = Browser.createNavigator.apply(this, arguments);
+		Browser[name] = navigator;
+
+		_.extend(Browser, navigator);
+
+	}
+
+	/**
+	 *  &lt;p> Factory method to create an instance of the class used internally by 
+	 *  Eclair.Browser to test the browser. &lt;/p>
+	 *
+	 *  @memberof Eclair.Browser
+	 *  @param {String} name This identifier will be used to create the test and registed at Eclair.Browser[name]
+	 *  @param {RegExp|String|Array} regex Regex or array of regex, or string to perform the test
+	 *  @param {Number} [versionIndex=1]
+	 *  @param {Function} [versionMatcher=false]
+	 *
+	 */
+	Browser.createNavigator = function (name, regex, versionIndex, versionMatcher) {
+
+		versionMatcher = versionMatcher || false;
+		versionIndex = _.isUndefined(versionIndex) ? 1 : versionIndex;
+
+		var uaMatch = Browser.match(regex),
+			navigator = {
+				name: name
+			};
+
+		if (!uaMatch) {
+			return false;
+		}
+
+		if (versionMatcher) {
+
+			navigator.version = versionMatcher(userAgent, uaMatch);
+			navigator.fullVersion = false;
+			navigator.fullName = false;
+
+		} else {
+
+			navigator.version = uaMatch[versionIndex];
+			navigator.fullVersion = getFullVersion(uaMatch);
+			navigator.fullName = uaMatch[0];
+
+
+		}
+
+		return new Navigator(navigator);
+
+	}
+
+	var getFullVersion = function (uaMatch) {
+
+		return _(uaMatch.slice(1)).without(void 0).join('.')
+
+	}
+
+	var lockScrollListener = function (e) {
+		e.preventDefault();
+	}
+
+	/**
+	 *  &lt;p> Scroll utility to prevent the user to be able to scroll
+	 *  the content view. &lt;/p>
+	 *  &lt;p> Destined to be used only on iOS3+ & Android 2.2+ &lt;/p>
+	 *
+	 *  @class
+	 *  @memberof Eclair
+	 */
+	Browser.Scroll = {
+
+		/**
+		 *  Is the scroll on the browser view locked ?
+		 *
+		 *  @type {Boolean}
+		 */
+		locked: false,
+
+		/**
+		 *  Prevent scroll on the page
+		 *
+		 *  @method
+		 */
+		lock: function () {
+
+			if (!this.locked) {
+				w.addEventListener('touchmove', lockScrollListener, false);
+				this.locked = true;
+			}
+
+		},
+
+		/**
+		 *  If the scroll has been previously prevented via Browser.scroll.lock,
+		 *  this method allow us to unlock the scroll.
+		 *
+		 *  @method
+		 */
+		unlock: function () {
+
+			if (this.locked) {
+				w.removeEventListener('touchmove', lockScrollListener);
+				this.locked = false;
+			}
+
+		},
+
+		/**
+		 *  Toggle the scroll availability
+		 *
+		 *  @method
+		 *  @memberof Eclair.Browser.scroll
+		 */
+		toggle: function () {
+			
+			if (this.locked) {
+				
+				this.unlock();
+				
+			} else {
+				
+				this.lock();
+				
+			}
+
+		}
+	};
+
+	/**
+	 *  Return the baseUrl
+	 *
+	 *  @returns String
+	 */
+	Browser.getBaseUrl = function () {
+
+		var anchor = document.createElement('a'),
+			find = '@F@';
+
+		anchor.href = find;
+
+		return anchor.href.split(find)[0];
+
+
+	}
+
+	var envs = {
+		webkit: {
+			regex: /AppleWebKit\/([0-9]+)/
+		},
+		ios: {
+			regex: /OS (\d+)_(\d+)(?:_(\d+))?.*AppleWebKit/,
+			fullVersion: true
+		},
+		android: {
+			regex: /Android (\d+)\.(\d+)(?:[.\-]([a-z0-9]+))?/,
+			fullVersion: true
+		},
+		msie: {
+			regex: /MSIE (\d+)\.(\d+).*IEMobile/
+		},
+		blackberry: {
+			regex: /Blackberry.*Version\/(\d+)\.(\d+)(?:\.(\d+))?/ // Not working
+		},
+		firefox: {
+			regex: /rv:(\d+)\.(\d+).*Firefox/
+		},
+		chrome: {
+			regex: [
+				/Chrome\/(\d+)\.(\d+)/,
+				/Chromium\/(\d+)\.(\d+)/
+			]
+		}
+	};
+
+	// Build browsers object into Eclair.Browser
+	var env = null;
+	for (var browser in envs) {
+	
+		env = envs[browser];
+		Browser.register(browser, env.regex, env.versionIndex, env.versionMatcher);
+	
+	}
+
+})(Eclair, _);
+/* MediaMatch v.2.0.2 - Testing css media queries in Javascript. Authors & copyright (c) 2013: WebLinc, David Knight. */
+
+window.matchMedia || (window.matchMedia = function (win) {
+    'use strict';
+
+    // Internal globals
+    var _doc        = win.document,
+        _viewport   = _doc.documentElement,
+        _queries    = [],
+        _queryID    = 0,
+        _type       = '',
+        _features   = {},
+                    // only screen
+                    // only screen and
+                    // not screen
+                    // not screen and
+                    // screen
+                    // screen and
+        _typeExpr   = /\s*(only|not)?\s*(screen|print|[a-z\-]+)\s*(and)?\s*/i,
+                    // (-vendor-min-width: 300px)
+                    // (min-width: 300px)
+                    // (width: 300px)
+                    // (width)
+                    // (orientation: portrait|landscape)
+        _mediaExpr  = /^\s*\(\s*(-[a-z]+-)?(min-|max-)?([a-z\-]+)\s*(:?\s*([0-9]+(\.[0-9]+)?|portrait|landscape)(px|em|dppx|dpcm|rem|%|in|cm|mm|ex|pt|pc|\/([0-9]+(\.[0-9]+)?))?)?\s*\)\s*$/,
+        _timer      = 0,
+
+        // Helper methods
+
+        /*
+            _matches
+         */
+        _matches = function (media) {
+            // screen and (min-width: 400px), screen and (max-width: 500px)
+            var mql         = (media.indexOf(',') !== -1 && media.split(',')) || [media],
+                mqIndex     = mql.length - 1,
+                mqLength    = mqIndex,
+                mq          = null,
+
+                // not screen, screen
+                negateType      = null,
+                negateTypeFound = '',
+                negateTypeIndex = 0,
+                negate          = false,
+                type            = '',
+
+                // (min-width: 400px), (min-width)
+                exprListStr = '',
+                exprList    = null,
+                exprIndex   = 0,
+                exprLength  = 0,
+                expr        = null,
+
+                prefix      = '',
+                length      = '',
+                unit        = '',
+                value       = '',
+                feature     = '',
+
+                match       = false;
+
+            if (media === '') {
+                return true;
+            }
+
+            do {
+                mq          = mql[mqLength - mqIndex];
+                negate      = false;
+                negateType  = mq.match(_typeExpr);
+
+                if (negateType) {
+                    negateTypeFound = negateType[0];
+                    negateTypeIndex = negateType.index;
+                }
+
+                if (!negateType || ((mq.substring(0, negateTypeIndex).indexOf('(') === -1) && (negateTypeIndex || (!negateType[3] && negateTypeFound !== negateType.input)))) {
+                    match = false;
+                    continue;
+                }
+
+                exprListStr = mq;
+
+                negate = negateType[1] === 'not';
+
+                if (!negateTypeIndex) {
+                    type        =  negateType[2];
+                    exprListStr = mq.substring(negateTypeFound.length);
+                }
+
+                // Test media type
+                // Test type against this device or if 'all' or empty ''
+                match       = type === _type || type === 'all' || type === '';
+
+                exprList    = (exprListStr.indexOf(' and ') !== -1 && exprListStr.split(' and ')) || [exprListStr];
+                exprIndex   = exprList.length - 1;
+                exprLength  = exprIndex;
+
+                if (match && exprIndex >= 0 && exprListStr !== '') {
+                    do {
+                        expr = exprList[exprIndex].match(_mediaExpr);
+
+                        if (!expr || !_features[expr[3]]) {
+                            match = false;
+                            break;
+                        }
+
+                        prefix  = expr[2];
+                        length  = expr[5];
+                        value   = length;
+                        unit    = expr[7];
+                        feature = _features[expr[3]];
+
+                        // Convert unit types
+                        if (unit) {
+                            if (unit === 'px') {
+                                // If unit is px
+                                value = Number(length);
+                            } else if (unit === 'em' || unit === 'rem') {
+                                // Convert relative length unit to pixels
+                                // Assumed base font size is 16px
+                                value = 16 * length;
+                            } else if (expr[8]) {
+                                // Convert aspect ratio to decimal
+                                value = (length / expr[8]).toFixed(2);
+                            } else if (unit === 'dppx') {
+                                // Convert resolution dppx unit to pixels
+                                value = length * 96;
+                            } else if (unit === 'dpcm') {
+                                // Convert resolution dpcm unit to pixels
+                                value = length * 0.3937;
+                            } else {
+                                // default
+                                value = Number(length);
+                            }
+                        }
+
+                        // Test for prefix min or max
+                        // Test value against feature
+                        if (prefix === 'min-' && value) {
+                            match = feature >= value;
+                        } else if (prefix === 'max-' && value) {
+                            match = feature &lt;= value;
+                        } else if (value) {
+                            match = feature === value;
+                        } else {
+                            match = !!feature;
+                        }
+
+                        // If 'match' is false, break loop
+                        // Continue main loop through query list
+                        if (!match) {
+                            break;
+                        }
+                    } while (exprIndex--);
+                }
+
+                // If match is true, break loop
+                // Once matched, no need to check other queries
+                if (match) {
+                    break;
+                }
+            } while (mqIndex--);
+
+            return negate ? !match : match;
+        },
+
+        /*
+            _setFeature
+         */
+        _setFeature = function () {
+            // Sets properties of '_features' that change on resize and/or orientation.
+            var w   = win.innerWidth || _viewport.clientWidth,
+                h   = win.innerHeight || _viewport.clientHeight,
+                dw  = win.screen.width,
+                dh  = win.screen.height,
+                c   = win.screen.colorDepth,
+                x   = win.devicePixelRatio;
+
+            _features.width                     = w;
+            _features.height                    = h;
+            _features['aspect-ratio']           = (w / h).toFixed(2);
+            _features['device-width']           = dw;
+            _features['device-height']          = dh;
+            _features['device-aspect-ratio']    = (dw / dh).toFixed(2);
+            _features.color                     = c;
+            _features['color-index']            = Math.pow(2, c);
+            _features.orientation               = (h >= w ? 'portrait' : 'landscape');
+            _features.resolution                = (x && x * 96) || win.screen.deviceXDPI || 96;
+            _features['device-pixel-ratio']     = x || 1;
+        },
+
+        /*
+            _watch
+         */
+        _watch = function () {
+            clearTimeout(_timer);
+
+            _timer = setTimeout(function () {
+                var query   = null,
+                    qIndex  = _queryID - 1,
+                    qLength = qIndex,
+                    match   = false;
+
+                if (qIndex >= 0) {
+                    _setFeature();
+
+                    do {
+                        query = _queries[qLength - qIndex];
+
+                        if (query) {
+                            match = _matches(query.mql.media);
+
+                            if ((match && !query.mql.matches) || (!match && query.mql.matches)) {
+                                query.mql.matches = match;
+
+                                if (query.listeners) {
+                                    for (var i = 0, il = query.listeners.length; i &lt; il; i++) {
+                                        if (query.listeners[i]) {
+                                            query.listeners[i].call(win, query.mql);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } while(qIndex--);
+                }
+
+                
+            }, 10);
+        },
+
+        /*
+            _init
+         */
+        _init = function () {
+            var head        = _doc.getElementsByTagName('head')[0],
+                style       = _doc.createElement('style'),
+                info        = null,
+                typeList    = ['screen', 'print', 'speech', 'projection', 'handheld', 'tv', 'braille', 'embossed', 'tty'],
+                typeIndex   = 0,
+                typeLength  = typeList.length,
+                cssText     = '#mediamatchjs { position: relative; z-index: 0; }',
+                eventPrefix = '',
+                addEvent    = win.addEventListener || (eventPrefix = 'on') && win.attachEvent;
+
+            style.type  = 'text/css';
+            style.id    = 'mediamatchjs';
+
+            head.appendChild(style);
+
+            // Must be placed after style is inserted into the DOM for IE
+            info = (win.getComputedStyle && win.getComputedStyle(style)) || style.currentStyle;
+
+            // Create media blocks to test for media type
+            for ( ; typeIndex &lt; typeLength; typeIndex++) {
+                cssText += '@media ' + typeList[typeIndex] + ' { #mediamatchjs { position: relative; z-index: ' + typeIndex + ' } }';
+            }
+
+            // Add rules to style element
+            if (style.styleSheet) {
+                style.styleSheet.cssText = cssText;
+            } else {
+                style.textContent = cssText;
+            }
+
+            // Get media type
+            _type = typeList[(info.zIndex * 1) || 0];
+
+            head.removeChild(style);
+
+            _setFeature();
+
+            // Set up listeners
+            addEvent(eventPrefix + 'resize', _watch);
+            addEvent(eventPrefix + 'orientationchange', _watch);
+        };
+
+    _init();
+
+    /*
+        A list of parsed media queries, ex. screen and (max-width: 400px), screen and (max-width: 800px)
+    */
+    return function (media) {
+        var id  = _queryID,
+            mql = {
+                matches         : false,
+                media           : media,
+                addListener     : function addListener(listener) {
+                    _queries[id].listeners || (_queries[id].listeners = []);
+                    listener && _queries[id].listeners.push(listener);
+                },
+                removeListener  : function removeListener(listener) {
+                    var query   = _queries[id],
+                        i       = 0,
+                        il      = 0;
+
+                    if (!query) {
+                        return;
+                    }
+
+                    il = query.listeners.length;
+
+                    for ( ; i &lt; il; i++) {
+                        if (query.listeners[i] === listener) {
+                            query.listeners.splice(i, 1);
+                        }
+                    }
+                }
+            };
+
+        if (media === '') {
+            mql.matches = true;
+            return mql;
+        }
+
+        mql.matches = _matches(media);
+
+        _queryID = _queries.push({
+            mql         : mql,
+            listeners   : null
+        });
+
+        return mql;
+    };
+}(window));
+/**
+ *  Orientation Component
+ *
+ */
+
+(function(Eclair, _) {
+
+	var browser = Eclair.Browser,
+		orientationEmitter = new Eclair.EventEmitter,
+
+		w = Eclair.global,
+		matchMedia = w.matchMedia,
+
+		// Booleans
+		hasOrientationProperty = w.orientation ? true : false,
+
+		// Should the orientationchange event be simulated ?
+		shimOrientation = browser.ios && browser.version &lt; 5 || browser.android && browser.fullVersion &lt; 2.2,
+		shimOrientationDegree = 0;
+
+	/**
+	 *  &lt;p> Device Orientation Component &lt;/p>
+	 *  &lt;p> Unified interface to notify javascript scrips when the device orientation change &lt;/p>
+	 *  &lt;p> This component also shim window.matchMedia. &lt;/p>
+	 *
+	 *  @class
+	 *  @memberof Eclair
+	 *
+	 *  @fires Eclair.Orientation#change
+	 *  @fires Eclair.Orientation#portrait
+	 *  @fires Eclair.Orientation#landscape
+	 *
+	 */
+	var Orientation = Eclair.Module('Orientation', {
+		initializer: orientationEmitter
+	});
+
+
+	/**
+	 *  &lt;p> Timestamp in ms of the last orientation change &lt;/p>
+	 *  &lt;p> Set to false if the orientation never changed. &lt;/p>
+	 *
+	 *  @memberof Eclair.Orientation
+	 *  @type {String}
+	 */
+	Orientation.lastChange = null;
+
+	/**
+	 *  &lt;p> This variable is set to true if the current orientation is
+	 *  portrait &lt;/p>
+	 *
+	 *  @memberof Eclair.Orientation
+	 *  @type {Boolean}
+	 */
+	Orientation.portrait = w.innerWidth &lt;= w.innerHeight;
+
+	/**
+	 *  &lt;p> This variable is set to false if the current orientation
+	 *  is landscape &lt;/p>
+	 *
+	 *  @memberof Eclair.Orientation
+	 *  @type {Boolean}
+	 */
+	Orientation.landscape = !Orientation.portrait;
+
+	/**
+	 *  &lt;p> Current orientation of the device &lt;/p>
+	 *  &lt;p> Is set to 'portrait' or 'landscape' &lt;/p>
+	 *
+	 *  @memberof Eclair.Orientation
+	 *  @type {String}
+	 */
+	Orientation.mode = Orientation.portrait ? 'portrait' : 'landscape';
+
+	/**
+	 *  Previously 2 matchMedia request was being made one for the old orientation
+	 *  and one for the new orientation.
+	 */
+	var resizeListener = function () {
+
+		var previousOrientation = Orientation.mode,
+			other = Orientation.portrait ? 'landscape' : 'portrait';
+
+		if ( !matchMedia('(orientation:' + previousOrientation + ')').matches ) {
+
+			var e = Eclair.Event ? new Eclair.Event : {};
+
+			Orientation.lastChange = +new Date;
+			Orientation.mode = other;
+			Orientation.portrait = !Orientation.portrait;
+			Orientation.landscape = !Orientation.landscape;
+
+			e.mode = other;
+
+			Orientation.emit('change', e);
+			Orientation.emit(other, e);
+
+		}
+
+		// Shim orientationchange for old platforms
+		if (shimOrientation) {
+			setTimeout(orientationFix, 1000/60);
+		}
+
+	}
+
+	// Events documentation
+
+	/**
+	 *  Orientation change event
+	 *
+	 *  @event Eclair.Orientation#change
+	 *  @type {Object}
+	 */
+
+	/**
+	 *  Orientation portrait event
+	 *
+	 *  @event Eclair.Orientation#portrait
+	 *  @type {Object}
+	 */
+
+	/**
+	 *  Orientation landscape event
+	 *
+	 *  @event Eclair.Orientation#landscape
+	 *  @type {Object}
+	 */
+
+	// Shim orientationchange event
+	var orientationFix = function () {
+
+		var screen = mraid ? mraid.getScreenSize()
+					: {
+						width: w.innerWidth,
+						height:w.innerHeight
+					},
+			newOrientation = screen.width > screen.height ? 90 : 0,
+			event = null;
+
+		if (shimOrientationDegree != newOrientation) {
+
+			shimOrientationDegree = newOrientation;
+
+			event = document.createEvent('Event');
+			event.initEvent('orientationchange', true, false);
+			w.dispatchEvent(event);
+
+		}
+
+	}
+
+	if (shimOrientation) {
+
+		//use the polyfill only with if Eclair is used as Ad loader
+		/*
+		w.__defineGetter__('orientation', function () {
+
+			return shimOrientationDegree;
+
+		});
+		*/
+
+		// Set shimOrientation to false until
+		// the loading event is fired
+		// to prevent the shim to enter in conflict,
+		// with the shim the SDK should provide
+		shimOrientation = false;
+
+		Eclair.on('loading', function () {
+
+			// Now restore shimOrientation boolean to true
+			// to enable the resizeListener to call
+			// the orientationFix method
+			shimOrientation = true;
+
+			// Redefine the getter
+			w.__defineGetter__('orientation', function () {
+
+				return shimOrientationDegree;
+
+			});
+
+			// Apply the orientation fix
+			setTimeout(orientationFix, 1000/60);
+
+		});
+
+	}
+
+	// Listen for resizes
+	w.addEventListener('resize', resizeListener, false);
+
+	// The loading event means that the document has been replaced
+	Eclair.on('loading', function () {
+
+		// The resize listener has to be reattached if the document is replaced
+		w.removeEventListener('resize', resizeListener, false);
+		w.addEventListener('resize', resizeListener, false);
+
+		matchMedia = w.matchMedia;
+
+	});
+	
+})(Eclair, _);</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <div id="sidebar">
+        <a href="index.html"><div id="home-button">⌂</div></a><h3>API Reference</h3><ul><li><a href="Eclair.html">Eclair</a></li><li class="sub-namespace">- <a href="Eclair.Browser.html">Browser</a></li><li class="sub-namespace">- <a href="Eclair.Browser.Scroll.html">Browser.Scroll</a></li><li class="sub-namespace">- <a href="Eclair.Config.html">Config</a></li><li class="sub-namespace">- <a href="Eclair.EventEmitter.html">EventEmitter</a></li><li class="sub-namespace">- <a href="Eclair.LocalStorage.html">LocalStorage</a></li><li class="sub-namespace">- <a href="Eclair.LocalStorage.LocalStoreObject.html">LocalStorage.LocalStoreObject</a></li><li class="sub-namespace">- <a href="Eclair.LocalStorage.Slot.html">LocalStorage.Slot</a></li><li class="sub-namespace">- <a href="Eclair.Module.html">Module</a></li><li class="sub-namespace">- <a href="Eclair.Orientation.html">Orientation</a></li><li class="sub-namespace">- <a href="Eclair.Promise.html">Promise</a></li><li class="sub-namespace">- <a href="Eclair.XHR.html">XHR</a></li></ul><h3>Events</h3><ul><li><a href="Eclair.Orientation.html#event:change">change</a></li><li><a href="Eclair.Orientation.html#event:landscape">landscape</a></li><li><a href="Eclair.Orientation.html#event:portrait">portrait</a></li></ul>
+    </div>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.2.0</a> on Fri Aug 23 2013 17:29:28 GMT+0200 (CEST)
+</footer>
+
+<script> prettyPrint(); </script>
+</body>
+</html>

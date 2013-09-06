@@ -173,23 +173,13 @@
 			LocalStorage = Eclair.LocalStorage,
 			promise = new Eclair.Promise;
 
-		// Check if the url is absolute
-		if (!~scriptUrl.indexOf('http://') 
-			&& !~scriptUrl.indexOf('https://')
-			&& scriptUrl.substring(0,2) != '//') {
-		
-			// If it isn't we append the baseUrl
-			// to ensure the identifier is correct in the localStorage
-			scriptUrl = Eclair.Browser.getBaseUrl() + scriptUrl;
-		
-		}
+		scriptUrl = (new Eclair.URL(scriptUrl)).toString();
 
 		promise.on('success', callback);
 		promise.on('error', onerror);
 
 		// Can we use XHR to retrieve this script ?	
-		if (settings.cacheJavascript 
-			&& (XHR.canLoadURL(scriptUrl) || settings.xhrProxy)) {
+		if (settings.cacheJavascript) {
 		
 			var cachedScript = LocalStorage.get(scriptUrl);
 		
@@ -217,14 +207,23 @@
 		
 				}
 		
-				var scriptError = function (status) {
+				var scriptError = function (err) {
 		
-					var e = {res:scriptUrl, status:status};
-		
+					var e = {res:scriptUrl, err:err};
+					
 					log.push(e);
-		
-					// Error
-					promise.done(e, null);
+					
+					// First attempt to fallback to script loading
+					if (err.type && err.type == 'error') {
+						
+						appendScriptFallback(scriptUrl, promise, opts);
+						
+					} else {
+						
+						// Error
+						promise.done(e, null);
+						
+					}
 		
 				}
 		
@@ -242,40 +241,46 @@
 		
 		} else {
 		
-			var script = Eclair.document.createElement('script');
-			script.type = "text/javascript";
-			script.charset = "utf-8";
-		
-			if (opts.async) {
-				script.async = true;
-			}
-		
-			script.src = scriptUrl;
-		
-			script.addEventListener('load', function (e) {
-		
-				// Success
-				promise.done(null, null);
-		
-			}, false);
-		
-			script.addEventListener('error', function (e) {
-		
-				// Error
-				promise.done(e, null)
-		
-			})
-		
-			if (Eclair.document.body) {
-				Eclair.document.body.appendChild(script);
-			} else {
-				Eclair.head.appendChild(script);	
-			}
+			appendScriptFallback(scriptUrl, promise, opts);
 		
 		}
 
 		return promise;
 
+	 }
+	 
+	 var appendScriptFallback = function (scriptUrl, promise, opts) {
+		 
+		 var script = Eclair.document.createElement('script');
+		 script.type = "text/javascript";
+		 script.charset = "utf-8";
+		 
+		 if (opts.async) {
+		 	script.async = true;
+		 }
+		 
+		 script.src = scriptUrl;
+		 
+		 script.addEventListener('load', function (e) {
+		 
+		 	// Success
+		 	promise.done(null, null);
+		 
+		 }, false);
+		 
+		 script.addEventListener('error', function (e) {
+		 
+		 	// Error
+		 	promise.done(e, null)
+		 
+		 })
+		 
+		 if (Eclair.document.body) {
+		 	Eclair.document.body.appendChild(script);
+		 } else {
+		 	Eclair.head.appendChild(script);	
+		 }
+		 
 	 }
 
 	/**
@@ -291,6 +296,55 @@
 		
 		 Eclair.head.appendChild(script);
 
+	 }
+	 
+	/**
+	 *  <p> URL Class </p>
+	 *
+	 *  @constructor
+	 *  @memberof Eclair
+	 *  @param {String} urlString
+	 *
+	 */
+	Eclair.URL = function (urlString) {
+	 
+		var a = document.createElement('a');
+		a.href = urlString;
+		
+		this.toString = function () {
+		 
+			return this.absoluteString;
+		 
+		}
+		
+		// http://james.padolsey.com/javascript/parsing-urls-with-the-dom/
+		_.extend(this, {
+			
+			source: urlString,
+			absoluteString: a.href,
+			protocol: a.protocol.replace(':',''),
+			host: a.hostname,
+			port: a.port,
+			query: a.search,
+			params: (function(){
+				var ret = {},
+					seg = a.search.replace(/^\?/,'').split('&'),
+					len = seg.length, i = 0, s;
+				for (;i<len;i++) {
+					if (!seg[i]) { continue; }
+					s = seg[i].split('=');
+					ret[s[0]] = s[1];
+				}
+				return ret;
+			})(),
+			file: (a.pathname.match(/\/([^\/?#]+)$/i) || [,''])[1],
+			hash: a.hash.replace('#',''),
+			path: a.pathname.replace(/^([^\/])/,'/$1'),
+			relative: (a.href.match(/tps?:\/\/[^\/]+(.+)/) || [,''])[1],
+			segments: a.pathname.replace(/^\//,'').split('/')
+			
+		});
+		 
 	 }
 
  })(Eclair, _);

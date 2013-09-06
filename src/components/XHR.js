@@ -398,6 +398,16 @@
 			var timer = setTimeout(onTimeout, this.timeout);
 
 		}
+		
+		xhr.addEventListener('error', function (e) {
+			
+			if (self.pending) {
+				
+				self.done(e, null);
+				
+			}
+			
+		});
 
 		xhr.onreadystatechange = function () {
 

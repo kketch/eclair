@@ -10,7 +10,13 @@
  */
 
 (function(DOMParser) {
-
+	
+	if (!DOMParser) {
+		
+		return;
+		
+	}
+	
 	var parseFromStringNative = DOMParser.prototype.parseFromString;
 
 	// Firefox/Opera/IE throw errors on unsupported types
@@ -46,4 +52,4 @@
 
 	};
 
-}(DOMParser));
+}(this.DOMParser));

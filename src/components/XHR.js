@@ -399,7 +399,7 @@
 
 		}
 		
-		xhr.addEventListener('error', function (e) {
+		xhr.onerror = function (e) {
 			
 			if (self.pending) {
 				
@@ -407,7 +407,7 @@
 				
 			}
 			
-		});
+		}
 
 		xhr.onreadystatechange = function () {
 

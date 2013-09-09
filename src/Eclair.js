@@ -65,7 +65,7 @@
 	 */
 	Eclair.isLoaded = function (moduleName) {
 
-		if (this._modules.indexOf(moduleName) !== -1)
+		if (_.indexOf(this._modules, moduleName) !== -1)
 			return true;
 
 		return false;

@@ -297,7 +297,10 @@
 			regex: /Android (\d+)\.(\d+)(?:[.\-]([a-z0-9]+))?/,
 			fullVersion: true
 		},
-		msie: {
+		ie: {
+			regex: /MSIE ([0-9]{1,}[\.0-9]{0,})/	
+		},
+		iemobile: {
 			regex: /MSIE (\d+)\.(\d+).*IEMobile/
 		},
 		blackberry: {

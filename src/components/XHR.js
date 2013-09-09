@@ -14,7 +14,7 @@
 	 *  @property {String} [settings.xhrProxy] - XHR Proxy, mandatory if CORS isn't enabled on the remote server
 	 */
 	settings.define({ 
-		xhrProxy: "{{{ defaults.xhrProxy }}}",  
+		xhrProxy: "{{{ defaults.xhrProxy }}}"
 	});
 
 	/**
